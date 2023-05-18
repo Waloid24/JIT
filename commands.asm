@@ -31,20 +31,18 @@ main:
 ;     push rdi
 
     pop rax
-    cvtsi2sd xmm1, rax
-    
-    pop rax
     cvtsi2sd xmm0, rax
 
     mov rax, 1000
-    cvtsi2sd xmm2, rax
+    cvtsi2sd xmm1, rax
 
     divpd xmm0, xmm1
-    mulpd xmm0, xmm2
 
+    sqrtpd xmm0, xmm0
 
     cvtsd2si rax, xmm0
     push rax
+
 ;     mov rdi, printf_buf
 ;     xor rax, rax
 ;     call printf
@@ -52,9 +50,6 @@ main:
 ;     pop rdi
 ;     pop rsi
 ;     pop rax
-
-
-
     
     mov rax, 0x3C		;exit64(rdi)
     xor rdi, rdi

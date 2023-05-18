@@ -4,12 +4,13 @@
     For service commands we will use r14
 */
 
-static void x86insertCmd        (compilerInfo_t * compilerInfo, opcode_t cmd);
-static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand);
+static void x86insertCmd            (compilerInfo_t * compilerInfo, opcode_t cmd);
+static void x86TranslatePushPop     (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irCommand);
-static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand);
-static void ptrTox86MemoryBuf   (compilerInfo_t * compilerInfo, u_int64_t ptr);
-static void x86insertPtr           (compilerInfo_t * compilerInfo, u_int32_t ptr);
+static void x86TranslateSqrt        (compilerInfo_t * compilerInfo, ir_t irCommand);
+static void x86TranslateJmpCall     (compilerInfo_t * compilerInfo, ir_t irCommand);
+static void ptrTox86MemoryBuf       (compilerInfo_t * compilerInfo, u_int64_t ptr);
+static void x86insertPtr            (compilerInfo_t * compilerInfo, u_int32_t ptr);
 
 static void dumpx86Represent  (compilerInfo_t * compilerInfo, opcode_t cmdCode, int64_t number, 
                         size_t lineSrcFile, char * nameCallingFunc);
@@ -62,12 +63,18 @@ void JITCompile (compilerInfo_t * compilerInfo)
             case CMD_JMP:
             case CMD_CALL:
                 x86TranslateJmpCall (compilerInfo, irArr[irIndex]);
+                break; 
 
             case CMD_ADD:
             case CMD_SUB:
             case CMD_MUL:
             case CMD_DIV:
                 x86TranslateSimpleMath (compilerInfo, irArr[irIndex]);
+                break;
+            
+            case CMD_SQRT:
+                x86TranslateSqrt (compilerInfo, irArr[irIndex]);
+                break;
 
             default:
                 MY_ASSERT (1, "Incorrect command type");
@@ -91,7 +98,6 @@ static void x86insertNum (compilerInfo_t * compilerInfo, int64_t number)
 
 static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
 {   
-
     switch (irCommand.argument_type)
     {
         case NUMBER:
@@ -182,6 +188,22 @@ static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
             MY_ASSERT (1, "Incorrect variation of push/pop command");
             break;
     }
+}
+
+static void x86TranslateSqrt (compilerInfo_t * compilerInfo, ir_t irCommand)
+{
+    EMIT (compilerInfo, pop_rax, POP_REG, RAX, 0)
+    EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+
+    EMIT (compilerInfo, mov_rax, MOV_REG_IMMED, RAX, 8)
+    x86insertNum (compilerInfo, 1000);
+    EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
+
+    EMIT_MATH_OPERS (compilerInfo, divpd, DIVPD_XMM0_XMM0, XMM0, 24, XMM1, 27)
+    EMIT (compilerInfo, sqrt, SQRTPD_XMM0_XMM0, 0, 0)
+
+    EMIT (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
+    EMIT (compilerInfo, push, PUSH_REG, RAX, 0)
 }
 
 static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
