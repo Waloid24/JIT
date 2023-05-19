@@ -5,17 +5,19 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
 static void x86TranslateSqrt        (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateJmpCall     (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateIn          (compilerInfo_t * compilerInfo, ir_t irCommand);
+static void x86TranslateOut         (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateRet         (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateHlt         (compilerInfo_t * compilerInfo, ir_t irCommand);
+static void x86TranslateCondJmps    (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void ptrTox86MemoryBuf       (compilerInfo_t * compilerInfo, u_int64_t ptr);
+static void x86insertNum            (compilerInfo_t * compilerInfo, int64_t number);
 static void x86insertCmd            (compilerInfo_t * compilerInfo, opcode_t cmd);
 static void x86insertPtr            (compilerInfo_t * compilerInfo, u_int32_t ptr);
-
-static void dumpx86Represent  (compilerInfo_t * compilerInfo, opcode_t cmdCode, int64_t number, 
-                        size_t lineSrcFile, char * nameCallingFunc);
+static void dumpx86Represent        (compilerInfo_t * compilerInfo, opcode_t cmdCode, int64_t number, 
+                                        size_t lineSrcFile, char * nameCallingFunc);
 
 const int64_t BAD_NUMBER = 123456;
-const size_t SIZE_x86_BUF = 128;
+const size_t SIZE_x86_BUF = 1000;
 
 #define dumpx86(compilerInfo, irCommand, number)                                        \
     dumpx86Represent (compilerInfo, irCommand, number, __LINE__, __PRETTY_FUNCTION__);  
@@ -48,7 +50,17 @@ void JITCompile (compilerInfo_t * compilerInfo)
     compilerInfo->machineCode.buf = (char *) calloc (sizeArr*4, sizeof(char));
 
     EMIT (compilerInfo, m_r_im, MOV_REG_IMMED, R15, 8)
+
+    compilerInfo->x86_memory_buf = (char *) calloc (SIZE_x86_BUF, sizeof(char));
+    MY_ASSERT (compilerInfo->x86_memory_buf == nullptr, "Unable to allocate new memory")
+
     ptrTox86MemoryBuf (compilerInfo, (u_int64_t) compilerInfo->x86_memory_buf);
+
+    compilerInfo->x86_out_buf =  "%.3lf\n";
+    ptrTox86MemoryBuf (compilerInfo, (u_int64_t) compilerInfo->x86_out_buf);
+
+    compilerInfo->x86_in_buf = "%lf";
+    ptrTox86MemoryBuf (compilerInfo, (u_int64_t) compilerInfo->x86_in_buf);
 
     for (size_t irIndex, machineIndex = 0; irIndex < sizeArr; irIndex++, machineIndex++)
     {
@@ -90,6 +102,9 @@ void JITCompile (compilerInfo_t * compilerInfo)
 
             case CMD_IN:
                 x86TranslateIn (compilerInfo, irArr[irIndex]);
+            
+            case CMD_OUT:
+                x86TranslateOut (compilerInfo, irArr[irIndex]);
 
             default:
                 MY_ASSERT (1, "Incorrect command type");
@@ -99,6 +114,65 @@ void JITCompile (compilerInfo_t * compilerInfo)
     }
 }
 
+static void x86TranslateOut (compilerInfo_t * compilerInfo, ir_t irCommand)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
+
+    EMIT (compilerInfo, pop_rax, POP_REG, RAX, 0)
+    EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+    EMIT (compilerInfo, mov_rax_num, MOV_REG_IMMED, RAX, 8)
+    x86insertNum (compilerInfo, 1000);
+    EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+    EMIT_MATH_OPERS (compilerInfo, divpd_xmm0_xmm1, DIVPD_XMM0_XMM0, XMM0, 24, XMM1, 27)
+
+    EMIT_MATH_OPERS (compilerInfo, mov_rbx_rsp, MOV_REG_REG, RBP, 16, RSP, 19)
+    EMIT (compilerInfo, and_rsp_10, AND_RSP_10, 0, 0)
+    EMIT (compilerInfo, mov_rdi_buf, MOV_REG_IMMED, RDI, 8)
+    ptrTox86MemoryBuf (compilerInfo, (u_int64_t) compilerInfo->x86_out_buf);
+    EMIT (compilerInfo, mov_rax_1, MOV_REG_IMMED, RAX, 8)
+    x86insertNum (compilerInfo, 1);
+    EMIT (compilerInfo, call_printf, CALL_PRINTF, 0, 0)
+    EMIT_MATH_OPERS (compilerInfo, mov_rsp_rbp, MOV_REG_REG, RSP, 16, RBP, 19)
+
+    // pop rax
+    // cvtsi2sd xmm0, rax
+    // mov rax, 1000
+    // cvtsi2sd xmm1, rax
+    // divpd xmm0, xmm1
+
+    // push rbx
+    // mov rdi, buf
+    // mov rax, 1
+    // call printf
+}
+
+static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
+
+    EMIT_MATH_OPERS (compilerInfo, mov_rbx_rsp, MOV_REG_REG, RBP, 16, RSP, 19)
+    EMIT (compilerInfo, and_rsp_10, AND_RSP_10, 0, 0)
+
+    EMIT (compilerInfo, mov_rax_1, MOV_REG_IMMED, RAX, 8)
+    x86insertNum (compilerInfo, 1);
+    EMIT (compilerInfo, mov_rdi_buf, MOV_REG_IMMED, RDI, 8)
+    ptrTox86MemoryBuf (compilerInfo, (u_int64_t) compilerInfo->x86_in_buf);
+    EMIT (compilerInfo, call_scanf, CALL_SCANF, 0, 0)
+    EMIT_MATH_OPERS (compilerInfo, mov_rsp_rbp, MOV_REG_REG, RSP, 16, RBP, 19)
+    EMIT (compilerInfo, cvtsd_rax_xmm0, CVTSD2SI_RAX_XMM0, 0, 0)
+    EMIT (compilerInfo, push_rax, PUSH_REG, RAX, 0)
+
+    // mov rbp, rsp
+    // and rsp, 0xffffffffffffff10
+
+    // mov rax, 1
+    // mov rdi, buf_scanf
+    // call scanf
+    // mov rsp, rbp
+    // cvtsd2si rax, xmm0
+    // push rax
+}
+
 static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
@@ -106,12 +180,16 @@ static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
     switch (irCommand.cmd)
     {
         case CMD_JMP:
-            EMIT (compilerInfo, jmp, x86_JMP, 0, 0)
+        {
+            EMIT (compilerInfo, cmd_jmp, x86_JMP, 0, 0)
             break;
+        }
         
         case CMD_CALL:
-            EMIT (compilerInfo, call, x86_CALL, 0, 0)
+        {
+            EMIT (compilerInfo, cmd_call, x86_CALL, 0, 0)
             break;
+        }  
     }
 
     u_int32_t relPtr = irCommand.argument - (irCommand.x86ip + 1 + sizeof (int));
@@ -189,7 +267,7 @@ static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
                 EMIT            (compilerInfo, push_reg, PUSH_REG, R15, 0)
                 EMIT_MATH_OPERS (compilerInfo, add_reg_reg, ADD_REG_REG, R15, 19, irCommand.reg_type, 16)
                 EMIT            (compilerInfo, push_r15_offset, PUSH_R15_OFFSET, 0, 0)
-                x86insertPtr       (compilerInfo, (u_int32_t) 0);
+                x86insertPtr    (compilerInfo, (u_int32_t) 0);
                 EMIT            (compilerInfo, pop_reg, POP_REG, R15, 0)
             }
             else
@@ -197,7 +275,7 @@ static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
                 EMIT            (compilerInfo, push_reg, PUSH_REG, R15, 0)
                 EMIT_MATH_OPERS (compilerInfo, ad_r_r, ADD_REG_REG, R15, 19, irCommand.reg_type, 16)
                 EMIT            (compilerInfo, pop_r15_off, POP_R15_OFFSET, 0, 0)
-                x86insertPtr       (compilerInfo, (u_int32_t) 0);
+                x86insertPtr    (compilerInfo, (u_int32_t) 0);
                 EMIT            (compilerInfo, pop_r, POP_REG, R15, 0)
             }
             break;
@@ -208,7 +286,7 @@ static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
                 EMIT            (compilerInfo, push_r, PUSH_REG, R15, 0)
                 EMIT_MATH_OPERS (compilerInfo, add_r_r, ADD_REG_REG, R15, 19, irCommand.reg_type, 16)
                 EMIT            (compilerInfo, push_r15_off, PUSH_R15_OFFSET, 0, 0)
-                x86insertPtr       (compilerInfo, (u_int32_t) irCommand.argument);
+                x86insertPtr    (compilerInfo, (u_int32_t) irCommand.argument);
                 EMIT            (compilerInfo, pop_r, POP_REG, R15, 0)
             }
             else
@@ -216,7 +294,7 @@ static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
                 EMIT            (compilerInfo, push_r, PUSH_REG, R15, 0)
                 EMIT_MATH_OPERS (compilerInfo, add_r_r, ADD_REG_REG, R15, 19, irCommand.reg_type, 16)
                 EMIT            (compilerInfo, pop_r15_off, POP_R15_OFFSET, 0, 0)
-                x86insertPtr       (compilerInfo, (u_int32_t) irCommand.argument);
+                x86insertPtr    (compilerInfo, (u_int32_t) irCommand.argument);
                 EMIT            (compilerInfo, pop_r, POP_REG, R15, 0)
             }
             break;
@@ -372,9 +450,9 @@ static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
     EMIT (compilerInfo, jmp_end, x86_JMP, 0, 0)             //jmp .after_equal
     x86insertPtr (compilerInfo, SIZE_MOV_REG_IMMED+SIZE_NUM+SIZE_PUSH_REG);
 
-    EMIT (compilerInfo, mov_rax_0, MOV_REG_IMMED, RAX, 8)   //
+    EMIT (compilerInfo, mov_rax_1, MOV_REG_IMMED, RAX, 8)   //
     x86insertNum (compilerInfo, 1);                         // -> push 1
-    EMIT (compilerInfo, push_rax, PUSH_REG, RAX, 0)         //
+    EMIT (compilerInfo, push_rax1, PUSH_REG, RAX, 0)         //
 
 }
 
@@ -497,18 +575,8 @@ static void x86TranslateRet (compilerInfo_t * compilerInfo, ir_t irCommand)
     EMIT (compilerInfo, ret, x86_RET, 0, 0)
 }
 
-static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
-{
-    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
-
-
-}
-
 static void ptrTox86MemoryBuf (compilerInfo_t * compilerInfo, u_int64_t ptr)
 {
-    compilerInfo->x86_memory_buf = (char *) calloc (SIZE_x86_BUF, sizeof(char));
-    MY_ASSERT (compilerInfo->x86_memory_buf == nullptr, "Unable to allocate new memory")
-
     *(u_int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len) = 
                     ptr;
     compilerInfo->machineCode.len += sizeof (u_int64_t);

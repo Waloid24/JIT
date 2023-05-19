@@ -56,6 +56,8 @@ typedef struct JIT_CompilerInfo {
     irInfo_t irInfo;
 
     char * x86_memory_buf;
+    char * x86_in_buf;
+    char * x86_out_buf;
 
 } compilerInfo_t;
 

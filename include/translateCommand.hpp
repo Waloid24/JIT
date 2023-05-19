@@ -83,7 +83,13 @@ enum X86_CMD : u_int64_t {
 
     SYSCALL = 0x050f, 
 
-    XOR_RDI_RDI = 0xff3148
+    XOR_RDI_RDI = 0xff3148,
+
+    CALL_PRINTF = 0xfffffeb7e8,
+
+    CALL_SCANF = 0xfffffed7e8,
+
+    AND_RSP_10 = 0xffffff10e48148
 };
 
 
@@ -114,7 +120,10 @@ enum x86_Commands_Size {
     SIZE_NUM = 8,
     SIZE_REL_PTR = 4,
     SIZE_SYSCALL = 2,
-    SIZE_XOR_RDI_RDI = 3
+    SIZE_XOR_RDI_RDI = 3,
+    SIZE_CALL_PRINTF = 5,
+    SIZE_CALL_SCANF = 5,
+    SIZE_AND_RSP_10 = 7
 };
 
 enum REG_MASK {

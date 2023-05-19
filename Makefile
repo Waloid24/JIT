@@ -41,18 +41,6 @@ src: | $(OBJDIR) $(DESTDIR) $(LOGDIR) $(GRAPHDIR)
 run:
 	./bin/main asmResult.bin
 
-asm1:
-	nasm -f elf64 commands.asm -o commands.o
-	ld commands.o -o commands
-	./commands
-
-asm2 : casm.o
-	g++ -no-pie commands.o -o commands
-	./commands
-
-casm.o:
-	nasm -f elf64 commands.asm -o commands.o
-
 clean:
 	rm -r $(DESTDIR) $(OBJDIR) $(LOGDIR) $(GRAPHDIR)
 
@@ -64,4 +52,16 @@ $(LOGDIR):
 	mkdir $(LOGDIR)
 $(GRAPHDIR):
 	mkdir $(GRAPHDIR)
+
+asm1:
+	nasm -f elf64 commands.asm -o commands.o
+	ld commands.o -o commands
+	./commands
+
+asm2 : casm.o
+	g++ -no-pie commands.o -o commands
+	./commands
+
+casm.o:
+	nasm -f elf64 commands.asm -o commands.o
 

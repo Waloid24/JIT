@@ -3,9 +3,12 @@
 #include "../include/optimizer.hpp"
 #include "../include/translateCommand.hpp"
 #include <string.h>
+#include <sys/mman.h>
+#include <time.h>
 
 void graphvizDumpIR (compilerInfo_t compilerInfo);
 void dumpCode       (compilerInfo_t * compilerInfo);
+void runCode        (compilerInfo_t compilerInfo);
 
 int main (int argc, char * argv[])
 {
@@ -36,13 +39,42 @@ int main (int argc, char * argv[])
 
     graphvizDumpIR (compilerInfo);
 
-    // JITCompile (&compilerInfo);
+    JITCompile (&compilerInfo);
+
+    runCode (compilerInfo);
 
     free (compilerInfo.byteCode.buf);
 
     return 0;
 }
 
+void runCode (compilerInfo_t compilerInfo)
+{
+    int mprotectResult = mprotect (compilerInfo.machineCode.buf, compilerInfo.machineCode.len + 1, PROT_EXEC | PROT_READ | PROT_WRITE);
+
+    if (mprotectResult == -1)
+    {
+        MY_ASSERT (1, "Error in mprotect");
+    }
+
+    void (* god_save_me)(void) = (void (*)(void))(compilerInfo.machineCode.buf);
+    MY_ASSERT (god_save_me != nullptr, "");
+
+    clock_t begin = clock ();
+    // for (int i = 0; i < 1000; i++)
+        god_save_me();
+
+    clock_t end = clock ();
+    printf ("Elapsed time(secs): %lf\n", (double)(end - begin) / CLOCKS_PER_SEC);
+
+    mprotectResult = mprotect (compilerInfo.machineCode.buf, compilerInfo.machineCode.len + 1, PROT_READ | PROT_WRITE);
+
+    if (mprotectResult == -1)
+    {
+        MY_ASSERT (1, "Error in mprotect");
+    }
+
+}
 
 #define dumpline(text, ...)\
 		fprintf (IRdumpFile, text, ##__VA_ARGS__)
