@@ -61,5 +61,6 @@ typedef struct JIT_CompilerInfo {
 
 void createIRArray  (compilerInfo_t * compilerInfo);
 void fillIRArray    (compilerInfo_t * compilerInfo);
+void fillJmpsCalls  (compilerInfo_t * compilerInfo);
 
 #endif

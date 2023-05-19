@@ -99,6 +99,26 @@ void JITCompile (compilerInfo_t * compilerInfo)
     }
 }
 
+static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
+
+    switch (irCommand.cmd)
+    {
+        case CMD_JMP:
+            EMIT (compilerInfo, jmp, x86_JMP, 0, 0)
+            break;
+        
+        case CMD_CALL:
+            EMIT (compilerInfo, call, x86_CALL, 0, 0)
+            break;
+    }
+
+    u_int32_t relPtr = irCommand.argument - (irCommand.x86ip + 1 + sizeof (int));
+
+    x86insertPtr (compilerInfo, relPtr);
+}
+
 static void x86insertCmd (compilerInfo_t * compilerInfo, opcode_t cmd)
 {
     *((u_int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len)) = cmd.code;
@@ -262,6 +282,9 @@ static void x86TranslateCondJmps (compilerInfo_t * compilerInfo, ir_t irCommand)
     }
 
     x86insertCmd (compilerInfo, typeJmp);
+
+    int32_t relCmd = irCommand.argument - (irCommand.x86ip + 1 + sizeof(int));
+
     x86insertPtr (compilerInfo, irCommand.argument);
 }
 
@@ -281,25 +304,6 @@ static void x86TranslateSqrt (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     EMIT (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
     EMIT (compilerInfo, push, PUSH_REG, RAX, 0)
-}
-
-static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
-{
-    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
-
-    switch (irCommand.cmd)
-    {
-        case CMD_JMP:
-            EMIT (compilerInfo, jmp, x86_JMP, 0, 0)
-            break;
-        
-        case CMD_CALL:
-            EMIT (compilerInfo, call, x86_CALL, 0, 0)
-            break;
-    }
-
-    // x86insertPtr (compilerInfo, );           дописать!
-
 }
 
 static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)

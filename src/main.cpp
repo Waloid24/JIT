@@ -30,6 +30,8 @@ int main (int argc, char * argv[])
         return 0;
     }
 
+    fillJmpsCalls (&compilerInfo);
+
     // optimizeIR (&compilerInfo);
 
     graphvizDumpIR (compilerInfo);

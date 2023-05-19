@@ -22,7 +22,7 @@ const size_t MAX_RAM = 100;
         .argument       = compilerInfo->byteCode.buf[i] \
     };                                                  \
     x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +   \
-    SIZE_x86_COND_JMP + SIZE_REL_PTR;                           
+    SIZE_x86_COND_JMP + SIZE_REL_PTR;
 
 #define BOOL_EXPR(command)                          \
     compilerInfo->irInfo.irArray[numCmds] = {       \
@@ -38,13 +38,56 @@ const size_t MAX_RAM = 100;
     SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP + SIZE_REL_PTR +    \
     SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG;
 
-static int checkBit(const int value, const int position);
-static int * createArrRegs (size_t numRegs);
+static int checkBit         (const int value, const int position);
+static int * createArrRegs  (size_t numRegs);
+static bool isJump          (ir_t irCommand);
+static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, int64_t nativeIp);
 
 void createIRArray (compilerInfo_t * compilerInfo)
 {
     compilerInfo->irInfo.irArray = (ir_t *) calloc (compilerInfo->byteCode.sizeBuf/sizeof(int), sizeof(ir_t));
     MY_ASSERT (compilerInfo->irInfo.irArray == nullptr, "Unable to allocate memory");
+}
+
+void fillJmpsCalls (compilerInfo_t * compilerInfo)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
+
+    for (size_t i = 0; i < compilerInfo->irInfo.sizeArray; i++)
+    {
+        if (isJump (compilerInfo->irInfo.irArray[i]))
+        {
+            compilerInfo->irInfo.irArray[i].argument = findJmpx86Ip (compilerInfo, compilerInfo->irInfo.irArray[i].argument);
+        }
+    }
+}
+
+static bool isJump (ir_t irCommand)
+{
+    if (irCommand.cmd == CMD_JMP || irCommand.cmd == CMD_JE || 
+        irCommand.cmd == CMD_JBE || irCommand.cmd == CMD_JB || 
+        irCommand.cmd == CMD_JGE || irCommand.cmd == CMD_JA ||
+        irCommand.cmd == CMD_JMP || irCommand.cmd == CMD_JNE ||
+        irCommand.cmd == CMD_CALL)
+    {
+        return true;
+    }
+    return false;
+}
+
+static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, int64_t nativeIp)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
+
+    for (size_t i = 0; i < compilerInfo->irInfo.sizeArray; i++)
+    {
+        if (compilerInfo->irInfo.irArray[i].nativeIP == nativeIp)
+        {
+            return compilerInfo->irInfo.irArray[i].x86ip;
+        }
+    }
+    MY_ASSERT (1, "Incorrect address to jmp or call address")
+    return -1;
 }
 
 void fillIRArray (compilerInfo_t * compilerInfo)
@@ -288,6 +331,8 @@ void fillIRArray (compilerInfo_t * compilerInfo)
 
     return ;
 }
+
+
 
 static int checkBit(const int value, const int position) 
 {
