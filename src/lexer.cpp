@@ -12,23 +12,31 @@ const int NUM_REGISTERS = 4;
 const size_t MAX_RAM = 100;
 
 #define JUMP_FORM(command)                              \
-    compilerInfo->irInfo.irArray[numCmds] = {                   \
+    compilerInfo->irInfo.irArray[numCmds] = {           \
         .name           = #command,                     \
         .cmd            = CMD_##command,                \
         .nativeSize     = 2,                            \
         .nativeIP       = i-1,                          \
+        .x86ip          = x86ip,                        \
         .argument_type  = LABEL,                        \
-        .argument       = compilerInfo->byteCode.buf[i]  \
-    };
+        .argument       = compilerInfo->byteCode.buf[i] \
+    };                                                  \
+    x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +   \
+    SIZE_x86_COND_JMP + SIZE_REL_PTR;                           
 
 #define BOOL_EXPR(command)                          \
-    compilerInfo->irInfo.irArray[numCmds] = {               \
+    compilerInfo->irInfo.irArray[numCmds] = {       \
         .name           = #command,                 \
         .cmd            = CMD_##command,            \
         .nativeSize     = 2,                        \
         .nativeIP       = i,                        \
+        .x86ip          = x86ip,                    \
         .argument_type  = LABEL                     \
-    };
+    };                                              \
+    x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +   \
+    SIZE_x86_COND_JMP + SIZE_REL_PTR + SIZE_MOV_REG_IMMED +     \
+    SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP + SIZE_REL_PTR +    \
+    SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG;
 
 static int checkBit(const int value, const int position);
 static int * createArrRegs (size_t numRegs);
@@ -75,22 +83,9 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .argument       = compilerInfo->byteCode.buf[i]
                 };
             }
-            else if (cmd == CMD_POP)
-            {
-                // i++;
-                // compilerInfo->irInfo.irArray[numCmds] = {
-                //     .name           = "pop_empty",
-                //     .cmd            = CMD_POP,
-                //     .nativeSize     = 2,
-                //     .nativeIP       = i-1,
-                //     .argument_type  = NUMBER,
-                //     .argument       = compilerInfo->byteCode.buf[i]
-                // };
-                MY_ASSERT (1, "Incorrect command pop num")
-            }
             else
             {
-                MY_ASSERT (1, "Wrong command (section pushORpop_num)");
+                MY_ASSERT (1, "Wrong command (section push_num)");
             }
             x86ip += SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG;
         }

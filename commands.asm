@@ -1,55 +1,22 @@
-
-section .text
 global _start
-global main
-extern printf
+section .text
 
-buf: times 128 db 0
-printf_buf: db "mul = %ld", 10, 0
 
-main:
-; _start:
-    ; mov rax, buf
-    ; mov rcx, buf
-    ; mov rdx, buf
-    ; mov rbx, buf
-    ; mov rsp, buf
-    ; mov rbp, buf
-    ; mov rsi, buf
-    ; mov rdi, buf
-    ; mov r8, buf
-    ; mov r9, buf
-    ; mov r10, buf
-    ; mov r11, buf
-    ; mov r12, buf
-    ; mov r13, buf
-    ; mov r14, buf
-    ; mov r15, buf
+_start:
+    mov rax, 100000000
+    mov rbx, 150000000
 
-;     push rax
-;     push rsi
-;     push rdi
+    cmp rbx, rax
+    je .equal
+    mov rax, 0
+    push rax
+    jmp .after_equal
+.equal:
+    mov rax, 1
+    push rax
+.after_equal:
 
     pop rax
-    cvtsi2sd xmm0, rax
-
-    mov rax, 1000
-    cvtsi2sd xmm1, rax
-
-    divpd xmm0, xmm1
-
-    sqrtpd xmm0, xmm0
-
-    cvtsd2si rax, xmm0
-    push rax
-
-;     mov rdi, printf_buf
-;     xor rax, rax
-;     call printf
-
-;     pop rdi
-;     pop rsi
-;     pop rax
     
     mov rax, 0x3C		;exit64(rdi)
     xor rdi, rdi

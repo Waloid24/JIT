@@ -79,8 +79,11 @@ enum X86_CMD : u_int64_t {
 
     x86_CALL = 0xe8,
 
-    CMP_REG_REG =  0xc03948,            // shifted by 19 and by 16 REG_MASK                     
+    CMP_REG_REG =  0xc03948,            // shifted by 19 and by 16 REG_MASK   
 
+    SYSCALL = 0x050f, 
+
+    XOR_RDI_RDI = 0xff3148
 };
 
 
@@ -99,8 +102,6 @@ enum x86_Commands_Size {
     SIZE_CQO = 2,
     SIZE_IDIV_REG = 3,
     SIZE_CVTSI2SD_XMM0_RAX = 5,
-    SIZE_CVTSI2SD_XMM1_RAX = 5,
-    SIZE_CVTSI2SD_XMM2_RAX = 5,
     SIZE_CVTSD2SI_RAX_XMM0 = 5,
     SIZE_SQRTPD_XMM0_XMM0 = 4,
     SIZE_DIVPD_XMM0_XMM0 = 4,
@@ -111,7 +112,9 @@ enum x86_Commands_Size {
     SIZE_x86_CALL = 1,
     SIZE_CMP_REG_REG = 3,
     SIZE_NUM = 8,
-    SIZE_REL_PTR = 4
+    SIZE_REL_PTR = 4,
+    SIZE_SYSCALL = 2,
+    SIZE_XOR_RDI_RDI = 3
 };
 
 enum REG_MASK {

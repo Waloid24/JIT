@@ -12,8 +12,10 @@ DEF_CMD (ADD,  3,  NO,
         .name           = "add",
         .cmd            = CMD_ADD,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
+    x86ip += SIZE_ADD_REG_REG;
 })
 DEF_CMD (SUB,  4,  NO,
 {
@@ -21,8 +23,10 @@ DEF_CMD (SUB,  4,  NO,
         .name           = "sub",
         .cmd            = CMD_SUB,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
+    x86ip += SIZE_SUB_REG_REG;
 })
 DEF_CMD (MUL,  5,  NO,
 {
@@ -30,8 +34,14 @@ DEF_CMD (MUL,  5,  NO,
         .name           = "mul",
         .cmd            = CMD_MUL,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
+    x86ip += SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_POP_REG +
+    SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED + SIZE_NUM + 
+    SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + SIZE_DIVPD_XMM0_XMM0 +
+    SIZE_MULPD_XMM0_XMM0 + SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 +
+    SIZE_PUSH_REG;
 })
 DEF_CMD (DIV,  6,  NO,
 {
@@ -39,8 +49,14 @@ DEF_CMD (DIV,  6,  NO,
         .name           = "div",
         .cmd            = CMD_DIV,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
+    x86ip += SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_POP_REG +
+    SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED + SIZE_NUM +
+    SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + 
+    SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 + 
+    SIZE_PUSH_REG;
 })
 DEF_CMD (OUT,  7,  NO,
 {
@@ -48,7 +64,8 @@ DEF_CMD (OUT,  7,  NO,
         .name           = "out",
         .cmd            = CMD_OUT,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
 })
 DEF_CMD (IN,   8,  NO,
@@ -57,7 +74,8 @@ DEF_CMD (IN,   8,  NO,
         .name           = "in",
         .cmd            = CMD_IN,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
 })
 DEF_CMD (JMP,  9,  YES,
@@ -68,9 +86,11 @@ DEF_CMD (JMP,  9,  YES,
         .cmd            = CMD_JMP,
         .nativeSize     = 2,
         .nativeIP       = i-1,
+        .x86ip          = x86ip,
         .argument_type  = LABEL,
         .argument       = compilerInfo->byteCode.buf[i]
     };
+    x86ip += SIZE_x86_JMP + SIZE_REL_PTR;
 })
 DEF_CMD (CALL, 10, YES,
 {
@@ -80,9 +100,11 @@ DEF_CMD (CALL, 10, YES,
         .cmd            = CMD_CALL,
         .nativeSize     = 2,
         .nativeIP       = i-1,
+        .x86ip          = x86ip,
         .argument_type  = LABEL,
         .argument       = compilerInfo->byteCode.buf[i]
     };
+    x86ip += SIZE_x86_CALL + SIZE_REL_PTR;
 })
 DEF_CMD (RET,  11, NO,
 {
@@ -90,8 +112,10 @@ DEF_CMD (RET,  11, NO,
         .name           = "ret",
         .cmd            = CMD_RET,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
+    x86ip += SIZE_x86_RET;
 })
 DEF_CMD (JA,   12, YES,
 {
@@ -129,8 +153,11 @@ DEF_CMD (HLT,  18, NO,
         .name           = "hlt",
         .cmd            = CMD_HLT,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
+    x86ip += SIZE_MOV_REG_IMMED + SIZE_NUM + 
+    SIZE_XOR_RDI_RDI + SIZE_SYSCALL;
 })
 DEF_CMD (SQRT, 19, NO,
 {
@@ -138,8 +165,12 @@ DEF_CMD (SQRT, 19, NO,
         .name           = "sqrt",
         .cmd            = CMD_SQRT,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
+    x86ip += SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED +
+    SIZE_NUM + SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + 
+    SIZE_SQRTPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 + SIZE_PUSH_REG;
 })
 DEF_CMD (MEOW, 20, NO,
 {
@@ -147,12 +178,13 @@ DEF_CMD (MEOW, 20, NO,
         .name           = "meow",
         .cmd            = CMD_MEOW,
         .nativeSize     = 1,
-        .nativeIP       = i
+        .nativeIP       = i,
+        .x86ip          = x86ip
     };
+    MY_ASSERT (1, "This version doesn't support this command (meow), sorry :(")
 })
 DEF_CMD (BA,   21, NO,
 {
-    
     BOOL_EXPR (BA)
 })
 DEF_CMD (BB,   22, NO,
