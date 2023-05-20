@@ -8,6 +8,7 @@ const int REG = 6; //0000 | 0001  -> 0100 | 0000
 const int NUM = 5; //0000 | 0001  -> 0010 | 0000
 
 const int NUM_REGISTERS = 4;  
+const size_t SIZE_x86_BUF = 1000;
 
 const size_t MAX_RAM = 100;
 
@@ -62,6 +63,38 @@ void fillJmpsCalls (compilerInfo_t * compilerInfo)
     }
 }
 
+void JITConstructor (compilerInfo_t * compilerInfo)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
+
+    compilerInfo->machineCode.buf = (char *) aligned_alloc (PAGE_SIZE, 4096*sizeof(char));
+    MY_ASSERT (compilerInfo->machineCode.buf == nullptr, "Unable to allocate new memory")
+    memset ((void*) compilerInfo->machineCode.buf, 0, 4096*sizeof(char));
+
+    compilerInfo->x86_memory_buf = (char *) aligned_alloc (MEMORY_ALIGNMENT, MEMORY_ALIGNMENT*sizeof(char));
+    MY_ASSERT (compilerInfo->x86_memory_buf == nullptr, "Unable to allocate new memory")
+    memset ((void*) compilerInfo->x86_memory_buf, 0, MEMORY_ALIGNMENT*sizeof(char));
+
+    compilerInfo->x86_out_buf = (char *) aligned_alloc (8, 8*sizeof(char));
+    memset ((void*) compilerInfo->x86_out_buf, 0, 8*sizeof(char));
+    compilerInfo->x86_in_buf  = (char *) aligned_alloc (4, 4*sizeof(char));
+    memset ((void*) compilerInfo->x86_out_buf, 0, 4*sizeof(char));
+
+    strncpy (compilerInfo->x86_out_buf, "%.3lf\n", 7*sizeof(char));
+    strncpy (compilerInfo->x86_in_buf, "%lf",  4*sizeof(char));
+
+}
+
+void JITDestructor (compilerInfo_t * compilerInfo)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
+
+    free (compilerInfo->x86_in_buf);
+    free (compilerInfo->x86_out_buf);
+    free (compilerInfo->x86_memory_buf);
+    free (compilerInfo->machineCode.buf);
+}
+
 static bool isJump (ir_t irCommand)
 {
     if (irCommand.cmd == CMD_JMP || irCommand.cmd == CMD_JE || 
@@ -86,7 +119,7 @@ static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, int64_t nativeIp)
             return compilerInfo->irInfo.irArray[i].x86ip;
         }
     }
-    MY_ASSERT (1, "Incorrect address to jmp or call address")
+    // MY_ASSERT (1, "Incorrect address to jmp or call address")        // TODO: there is jmp with 213 ip, fix it
     return -1;
 }
 

@@ -3,6 +3,7 @@
 static void x86TranslatePushPop     (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateSqrt        (compilerInfo_t * compilerInfo, ir_t irCommand);
+static void x86TranslateComp        (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateJmpCall     (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateIn          (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateOut         (compilerInfo_t * compilerInfo, ir_t irCommand);
@@ -17,7 +18,6 @@ static void dumpx86Represent        (compilerInfo_t * compilerInfo, opcode_t cmd
                                         size_t lineSrcFile, char * nameCallingFunc);
 
 const int64_t BAD_NUMBER = 123456;
-const size_t SIZE_x86_BUF = 1000;
 
 #define dumpx86(compilerInfo, irCommand, number)                                        \
     dumpx86Represent (compilerInfo, irCommand, number, __LINE__, __PRETTY_FUNCTION__);  
@@ -47,19 +47,11 @@ void JITCompile (compilerInfo_t * compilerInfo)
     size_t sizeArr = compilerInfo->irInfo.sizeArray;
     ir_t * irArr   = compilerInfo->irInfo.irArray;
 
-    compilerInfo->machineCode.buf = (char *) calloc (sizeArr*4, sizeof(char));
-
     EMIT (compilerInfo, m_r_im, MOV_REG_IMMED, R15, 8)
-
-    compilerInfo->x86_memory_buf = (char *) calloc (SIZE_x86_BUF, sizeof(char));
-    MY_ASSERT (compilerInfo->x86_memory_buf == nullptr, "Unable to allocate new memory")
-
     ptrTox86MemoryBuf (compilerInfo, (u_int64_t) compilerInfo->x86_memory_buf);
 
-    compilerInfo->x86_out_buf =  "%.3lf\n";
     ptrTox86MemoryBuf (compilerInfo, (u_int64_t) compilerInfo->x86_out_buf);
 
-    compilerInfo->x86_in_buf = "%lf";
     ptrTox86MemoryBuf (compilerInfo, (u_int64_t) compilerInfo->x86_in_buf);
 
     for (size_t irIndex, machineIndex = 0; irIndex < sizeArr; irIndex++, machineIndex++)
@@ -91,7 +83,16 @@ void JITCompile (compilerInfo_t * compilerInfo)
             case CMD_JNE:
                 x86TranslateCondJmps (compilerInfo, irArr[irIndex]);
                 break;
-            
+
+            case CMD_BA:
+            case CMD_BE:
+            case CMD_BGE:
+            case CMD_BNE:
+            case CMD_BB:
+            case CMD_BBE:
+                x86TranslateComp (compilerInfo, irArr[irIndex]);
+                break;
+
             case CMD_SQRT:
                 x86TranslateSqrt (compilerInfo, irArr[irIndex]);
                 break;
@@ -102,9 +103,15 @@ void JITCompile (compilerInfo_t * compilerInfo)
 
             case CMD_IN:
                 x86TranslateIn (compilerInfo, irArr[irIndex]);
-            
+                break;
+
             case CMD_OUT:
                 x86TranslateOut (compilerInfo, irArr[irIndex]);
+                break;
+
+            case CMD_RET:
+                x86TranslateRet (compilerInfo, irArr[irIndex]);
+                break;
 
             default:
                 MY_ASSERT (1, "Incorrect command type");
@@ -171,42 +178,6 @@ static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
     // mov rsp, rbp
     // cvtsd2si rax, xmm0
     // push rax
-}
-
-static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
-{
-    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
-
-    switch (irCommand.cmd)
-    {
-        case CMD_JMP:
-        {
-            EMIT (compilerInfo, cmd_jmp, x86_JMP, 0, 0)
-            break;
-        }
-        
-        case CMD_CALL:
-        {
-            EMIT (compilerInfo, cmd_call, x86_CALL, 0, 0)
-            break;
-        }  
-    }
-
-    u_int32_t relPtr = irCommand.argument - (irCommand.x86ip + 1 + sizeof (int));
-
-    x86insertPtr (compilerInfo, relPtr);
-}
-
-static void x86insertCmd (compilerInfo_t * compilerInfo, opcode_t cmd)
-{
-    *((u_int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len)) = cmd.code;
-    compilerInfo->machineCode.len += cmd.size;
-}
-
-static void x86insertNum (compilerInfo_t * compilerInfo, int64_t number)
-{
-    *((int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len)) = number;
-    compilerInfo->machineCode.len += sizeof (int64_t);
 }
 
 static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -363,7 +334,31 @@ static void x86TranslateCondJmps (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     int32_t relCmd = irCommand.argument - (irCommand.x86ip + 1 + sizeof(int));
 
-    x86insertPtr (compilerInfo, irCommand.argument);
+    x86insertPtr (compilerInfo, relCmd);
+}
+
+static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
+
+    switch (irCommand.cmd)
+    {
+        case CMD_JMP:
+        {
+            EMIT (compilerInfo, cmd_jmp, x86_JMP, 0, 0)
+            break;
+        }
+        
+        case CMD_CALL:
+        {
+            EMIT (compilerInfo, cmd_call, x86_CALL, 0, 0)
+            break;
+        }  
+    }
+
+    u_int32_t relPtr = irCommand.argument - (irCommand.x86ip + 1 + sizeof (int));
+
+    x86insertPtr (compilerInfo, relPtr);
 }
 
 static void x86TranslateSqrt (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -538,8 +533,8 @@ static void dumpx86Represent  (compilerInfo_t * compilerInfo, opcode_t cmdCode, 
 
     logDumpline ("------------------start-------------------\n")
 
-    logDumpline ("code line:                     %zu\n", lineSrcFile);
-    logDumpline ("name of the calling function : %s\n\n")
+    logDumpline ("code line:                     %zu\n", lineSrcFile)
+    logDumpline ("name of the calling function : %s\n\n", nameCallingFunc)
 
     logDumpline ("lengthx86Code:    %zu\n", compilerInfo->machineCode.len)
     if (number != BAD_NUMBER)
@@ -587,4 +582,16 @@ static void x86insertPtr (compilerInfo_t * compilerInfo, u_int32_t ptr)
     * (u_int32_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len) = 
                     ptr;
     compilerInfo->machineCode.len += sizeof(u_int32_t);
+}
+
+static void x86insertCmd (compilerInfo_t * compilerInfo, opcode_t cmd)
+{
+    *((u_int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len)) = cmd.code;
+    compilerInfo->machineCode.len += cmd.size;
+}
+
+static void x86insertNum (compilerInfo_t * compilerInfo, int64_t number)
+{
+    *((int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len)) = number;
+    compilerInfo->machineCode.len += sizeof (int64_t);
 }

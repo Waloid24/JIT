@@ -61,8 +61,13 @@ typedef struct JIT_CompilerInfo {
 
 } compilerInfo_t;
 
+const size_t PAGE_SIZE          = 4096;
+const size_t MEMORY_ALIGNMENT   = 4096;
+
 void createIRArray  (compilerInfo_t * compilerInfo);
 void fillIRArray    (compilerInfo_t * compilerInfo);
 void fillJmpsCalls  (compilerInfo_t * compilerInfo);
+void JITConstructor (compilerInfo_t * compilerInfo);
+void JITDestructor  (compilerInfo_t * compilerInfo);
 
 #endif

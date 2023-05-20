@@ -9,6 +9,7 @@
 void graphvizDumpIR (compilerInfo_t compilerInfo);
 void dumpCode       (compilerInfo_t * compilerInfo);
 void runCode        (compilerInfo_t compilerInfo);
+void dumpx86MachineCode (compilerInfo_t compilerInfo);
 
 int main (int argc, char * argv[])
 {
@@ -33,36 +34,53 @@ int main (int argc, char * argv[])
         return 0;
     }
 
-    fillJmpsCalls (&compilerInfo);
-
     // optimizeIR (&compilerInfo);
 
     graphvizDumpIR (compilerInfo);
 
+    fillJmpsCalls (&compilerInfo);
+
+    JITConstructor (&compilerInfo);
+
     JITCompile (&compilerInfo);
+
+    dumpx86MachineCode (compilerInfo);
 
     runCode (compilerInfo);
 
-    free (compilerInfo.byteCode.buf);
+    JITDestructor (&compilerInfo);
 
     return 0;
 }
 
+void dumpx86MachineCode (compilerInfo_t compilerInfo)
+{
+    FILE * dumpFile = openFile ("dumpx86.txt", "w");
+
+    size_t numWrittenElems = fwrite (compilerInfo.machineCode.buf, compilerInfo.machineCode.len, 1, dumpFile);
+
+    printf ("%zu (%zu) array elements were successfully written\n", numWrittenElems, compilerInfo.machineCode.len);
+
+    return;
+}
+
 void runCode (compilerInfo_t compilerInfo)
 {
-    int mprotectResult = mprotect (compilerInfo.machineCode.buf, compilerInfo.machineCode.len + 1, PROT_EXEC | PROT_READ | PROT_WRITE);
+    // int mprotectResult = mprotect (compilerInfo.machineCode.buf, compilerInfo.machineCode.len + 1, PROT_EXEC | PROT_READ | PROT_WRITE);
+    
+    int mprotectResult = mprotect (compilerInfo.machineCode.buf, compilerInfo.machineCode.len*sizeof(char) + 1, PROT_EXEC | PROT_READ | PROT_WRITE);
 
     if (mprotectResult == -1)
     {
         MY_ASSERT (1, "Error in mprotect");
     }
 
-    void (* god_save_me)(void) = (void (*)(void))(compilerInfo.machineCode.buf);
-    MY_ASSERT (god_save_me != nullptr, "");
+    void (* executableBuffer)(void) = (void (*)(void))(compilerInfo.machineCode.buf);
+    MY_ASSERT (executableBuffer == nullptr, "gg vp");
 
     clock_t begin = clock ();
     // for (int i = 0; i < 1000; i++)
-        god_save_me();
+        executableBuffer();
 
     clock_t end = clock ();
     printf ("Elapsed time(secs): %lf\n", (double)(end - begin) / CLOCKS_PER_SEC);
