@@ -67,6 +67,10 @@ DEF_CMD (OUT,  7,  NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
+    x86ip += SIZE_CVTSI2SD_XMM0_RSP + SIZE_PUSHA1 + SIZE_PUSHA2 +
+            SIZE_MOV_REG_REG + SIZE_ALIGN_STACK + SIZE_x86_CALL +
+            SIZE_REL_PTR + SIZE_MOV_REG_REG + SIZE_POPA1 + SIZE_POPA2 +
+            SIZE_ADD_RSP_8;
 })
 DEF_CMD (IN,   8,  NO,
 {
@@ -77,6 +81,10 @@ DEF_CMD (IN,   8,  NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
+    x86ip += SIZE_SUB_RSP_8 + SIZE_LEA_RDI_RSP + SIZE_PUSHA2 + SIZE_PUSHA1 +
+            SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + 
+            SIZE_x86_CALL + SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POPA1 +
+            SIZE_POPA2;
 })
 DEF_CMD (JMP,  9,  YES,
 {
@@ -95,6 +103,7 @@ DEF_CMD (JMP,  9,  YES,
 DEF_CMD (CALL, 10, YES,
 {
     i++;
+    // x86ip += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
     compilerInfo->irInfo.irArray[numCmds] = {
         .name           = "call",
         .cmd            = CMD_CALL,
@@ -104,10 +113,11 @@ DEF_CMD (CALL, 10, YES,
         .argument_type  = LABEL,
         .argument       = compilerInfo->byteCode.buf[i]
     };
-    x86ip += SIZE_x86_CALL + SIZE_REL_PTR;
+    x86ip += SIZE_x86_CALL + SIZE_REL_PTR + SIZE_MOV_RNUM_REG + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
 })
 DEF_CMD (RET,  11, NO,
 {
+    // x86ip += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
     compilerInfo->irInfo.irArray[numCmds] = {
         .name           = "ret",
         .cmd            = CMD_RET,
@@ -115,7 +125,7 @@ DEF_CMD (RET,  11, NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
-    x86ip += SIZE_x86_RET;
+    x86ip += SIZE_x86_RET + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
 })
 DEF_CMD (JA,   12, YES,
 {
@@ -156,8 +166,9 @@ DEF_CMD (HLT,  18, NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
-    x86ip += SIZE_MOV_REG_IMMED + SIZE_NUM + 
-    SIZE_XOR_RDI_RDI + SIZE_SYSCALL;
+    // x86ip += SIZE_ADD_RSP + SIZE_REL_PTR + SIZE_MOV_REG_IMMED + SIZE_NUM + 
+    // SIZE_XOR_RDI_RDI + SIZE_SYSCALL;
+    x86ip += SIZE_x86_RET + SIZE_MOV_REG_RNUM;
 })
 DEF_CMD (SQRT, 19, NO,
 {

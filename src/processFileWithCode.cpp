@@ -44,7 +44,7 @@ code_t readCode (const char * nameFile)
     FILE * codeFile = openFile (nameFile, "r");
 
     fileInfo.nStrs = readNumStrs (codeFile);
-    printf ("fileInfo.nStrs = %zu\n", fileInfo.nStrs);
+    // printf ("fileInfo.nStrs = %zu\n", fileInfo.nStrs);
     writeTextToBuf (&fileInfo, codeFile);
 
     fclose (codeFile);

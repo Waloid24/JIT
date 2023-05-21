@@ -23,7 +23,7 @@ CXXFLAGS 	?= -mavx -mavx2 -g --static-pie -std=c++14 -fmax-errors=100 \
 -fsanitize=signed-integer-overflow -fsanitize=undefined \
 -fsanitize=unreachable -fsanitize=vla-bound -fsanitize=vptr -lm -pie
 
-SRC		:= lexer.cpp main.cpp processFileWithCode.cpp optimizer.cpp translateCommand.cpp
+SRC		:= lexer.cpp main.cpp processFileWithCode.cpp optimizer.cpp translateCommand.cpp dumpIr.cpp
 OUT		:= src.o
 
 OBJ 		:= $(addprefix $(OBJDIR)/, $(SRC:.cpp=.tmp.o))

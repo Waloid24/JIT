@@ -1,5 +1,6 @@
 #include "../include/lexer.hpp"
 #include "../include/translateCommand.hpp"
+#include "../include/dumpIr.hpp"
 
 const int MASK = (1<<4) + (1<<3) + (1<<2) + (1<<1) + 1; //0001|1111
 
@@ -11,6 +12,7 @@ const int NUM_REGISTERS = 4;
 const size_t SIZE_x86_BUF = 1000;
 
 const size_t MAX_RAM = 100;
+const int NOT_PTR = -1;
 
 #define JUMP_FORM(command)                              \
     compilerInfo->irInfo.irArray[numCmds] = {           \
@@ -42,7 +44,8 @@ const size_t MAX_RAM = 100;
 static int checkBit         (const int value, const int position);
 static int * createArrRegs  (size_t numRegs);
 static bool isJump          (ir_t irCommand);
-static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, int64_t nativeIp);
+static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, ir_t * irCommand);
+static void fillCallJumpArg (compilerInfo_t * compilerInfo);
 
 void createIRArray (compilerInfo_t * compilerInfo)
 {
@@ -50,18 +53,7 @@ void createIRArray (compilerInfo_t * compilerInfo)
     MY_ASSERT (compilerInfo->irInfo.irArray == nullptr, "Unable to allocate memory");
 }
 
-void fillJmpsCalls (compilerInfo_t * compilerInfo)
-{
-    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
 
-    for (size_t i = 0; i < compilerInfo->irInfo.sizeArray; i++)
-    {
-        if (isJump (compilerInfo->irInfo.irArray[i]))
-        {
-            compilerInfo->irInfo.irArray[i].argument = findJmpx86Ip (compilerInfo, compilerInfo->irInfo.irArray[i].argument);
-        }
-    }
-}
 
 void JITConstructor (compilerInfo_t * compilerInfo)
 {
@@ -70,6 +62,8 @@ void JITConstructor (compilerInfo_t * compilerInfo)
     compilerInfo->machineCode.buf = (char *) aligned_alloc (PAGE_SIZE, 4096*sizeof(char));
     MY_ASSERT (compilerInfo->machineCode.buf == nullptr, "Unable to allocate new memory")
     memset ((void*) compilerInfo->machineCode.buf, 0, 4096*sizeof(char));
+
+    printf ("compilerInfo->machineCode.buf = %p\n", compilerInfo->machineCode.buf);
 
     compilerInfo->x86_memory_buf = (char *) aligned_alloc (MEMORY_ALIGNMENT, MEMORY_ALIGNMENT*sizeof(char));
     MY_ASSERT (compilerInfo->x86_memory_buf == nullptr, "Unable to allocate new memory")
@@ -93,6 +87,8 @@ void JITDestructor (compilerInfo_t * compilerInfo)
     free (compilerInfo->x86_out_buf);
     free (compilerInfo->x86_memory_buf);
     free (compilerInfo->machineCode.buf);
+    free (compilerInfo->byteCode.buf);
+    free (compilerInfo->irInfo.irArray);
 }
 
 static bool isJump (ir_t irCommand)
@@ -100,27 +96,82 @@ static bool isJump (ir_t irCommand)
     if (irCommand.cmd == CMD_JMP || irCommand.cmd == CMD_JE || 
         irCommand.cmd == CMD_JBE || irCommand.cmd == CMD_JB || 
         irCommand.cmd == CMD_JGE || irCommand.cmd == CMD_JA ||
-        irCommand.cmd == CMD_JMP || irCommand.cmd == CMD_JNE ||
-        irCommand.cmd == CMD_CALL)
+        irCommand.cmd == CMD_JMP || irCommand.cmd == CMD_JNE)
     {
         return true;
     }
     return false;
 }
 
-static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, int64_t nativeIp)
+void fillJmpsCalls (compilerInfo_t * compilerInfo)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
 
     for (size_t i = 0; i < compilerInfo->irInfo.sizeArray; i++)
     {
-        if (compilerInfo->irInfo.irArray[i].nativeIP == nativeIp)
+        if (isJump (compilerInfo->irInfo.irArray[i]) || compilerInfo->irInfo.irArray[i].cmd == CMD_CALL)
         {
+            // compilerInfo->irInfo.irArray[i].argument = findJmpx86Ip (compilerInfo, &(compilerInfo->irInfo.irArray[i]));
+            compilerInfo->irInfo.irArray[i].argument = findJmpx86Ip (compilerInfo, &(compilerInfo->irInfo.irArray[i]));
+            // graphvizDumpIR (*compilerInfo);
+        }
+    }
+    fillCallJumpArg (compilerInfo);
+}
+
+static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, ir_t * irCommand)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
+
+    for (size_t i = 0; i < compilerInfo->irInfo.sizeArray; i++)
+    {
+        if (compilerInfo->irInfo.irArray[i].nativeIP == irCommand->argument)
+        {
+            if (irCommand->cmd == CMD_CALL)
+            {
+                compilerInfo->irInfo.irArray[i].isPurposeOfCall = true;
+
+                for (size_t j = i+1; j < compilerInfo->irInfo.sizeArray; j++)
+                {
+                    // if (compilerInfo->irInfo.irArray[j].isPurposeOfJmp == true)
+                    // {
+                    //     compilerInfo->irInfo.irArray[j].ptrToJmp->argument += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
+                    // }
+                    // // if (compilerInfo->irInfo.irArray[j].cmd == CMD_CALL)
+                    // // {
+                    // //     compilerInfo->irInfo.irArray[j].argument += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
+                    // // }
+                    compilerInfo->irInfo.irArray[j].x86ip += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
+                }
+            }
+            // if (isJump (*irCommand))
+            // {
+            //     compilerInfo->irInfo.irArray[i].isPurposeOfJmp = true;
+            //     compilerInfo->irInfo.irArray[i].ptrToJmp = irCommand;
+            // }
+            irCommand->ptrToCell = &(compilerInfo->irInfo.irArray[i]);
+
             return compilerInfo->irInfo.irArray[i].x86ip;
         }
     }
     // MY_ASSERT (1, "Incorrect address to jmp or call address")        // TODO: there is jmp with 213 ip, fix it
-    return -1;
+    return NOT_PTR;
+}
+
+static void fillCallJumpArg (compilerInfo_t * compilerInfo)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
+
+    for (size_t i = 0; i < compilerInfo->irInfo.sizeArray; i++)
+    {
+        if (isJump(compilerInfo->irInfo.irArray[i]) || compilerInfo->irInfo.irArray[i].cmd == CMD_CALL)
+        {
+            if (compilerInfo->irInfo.irArray[i].argument != NOT_PTR)
+            {
+                compilerInfo->irInfo.irArray[i].argument = compilerInfo->irInfo.irArray[i].ptrToCell->x86ip;
+            }
+        }
+    }
 }
 
 void fillIRArray (compilerInfo_t * compilerInfo)
@@ -133,6 +184,8 @@ void fillIRArray (compilerInfo_t * compilerInfo)
     size_t numCmds  = 0;
     size_t x86ip    = 0;
 
+    x86ip += SIZE_MOV_RNUM_IMMED + sizeof(u_int64_t) + SIZE_MOV_RNUM_REG + SIZE_MOV_RNUM_REG + SIZE_SUB_RSP + sizeof (int32_t);
+
     #define DEF_CMD(nameCmd, numCmd, isArg, ...)            \
     if (cmd == CMD_##nameCmd)                               \
         __VA_ARGS__                                         \
@@ -141,6 +194,11 @@ void fillIRArray (compilerInfo_t * compilerInfo)
     for (size_t i = 0; ; i++, numCmds++)
     {
         cmd = (compilerInfo->byteCode.buf[i] & MASK);
+
+        // if (cmd == CMD_HLT)
+        // {
+        //     printf ("\033[101m HLT!  \033[0m \n");
+        // }
 
         if ( (checkBit(compilerInfo->byteCode.buf[i], NUM) == 1) && 
              (checkBit(compilerInfo->byteCode.buf[i], REG) == 0) && 
@@ -301,7 +359,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
             {
                 MY_ASSERT (1, "Wrong command");
             }
-            x86ip += SIZE_PUSH_REG + SIZE_ADD_REG_REG + SIZE_PUSH_R15_OFFSET + SIZE_REL_PTR + SIZE_POP_REG;
+            x86ip += SIZE_MOV_RNUM_RNUM + SIZE_ADD_RNUM_REG + SIZE_PUSH_R15_OFFSET + SIZE_REL_PTR + SIZE_MOV_RNUM_RNUM;
         }
         else if ((checkBit(compilerInfo->byteCode.buf[i], NUM) == 1) && 
                 (checkBit(compilerInfo->byteCode.buf[i], REG) == 1) && 
@@ -344,7 +402,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
             {
                 MY_ASSERT (1, "Wrong command");
             }
-            x86ip += SIZE_PUSH_REG + SIZE_ADD_REG_REG + SIZE_POP_R15_OFFSET + SIZE_REL_PTR + SIZE_POP_REG;
+            x86ip += SIZE_MOV_RNUM_RNUM + SIZE_ADD_REG_REG + SIZE_POP_R15_OFFSET + SIZE_REL_PTR + SIZE_MOV_RNUM_RNUM;
         }
         else
 
@@ -353,7 +411,6 @@ void fillIRArray (compilerInfo_t * compilerInfo)
         
     
         {
-            printf ("cmd = %d, i = %zu, prevCmd = %s\n", cmd, i, compilerInfo->irInfo.irArray[i-2].name);
             break;
         }
     }

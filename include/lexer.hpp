@@ -28,7 +28,7 @@ typedef enum argument {
     LABEL       = 9
 } argument_t;
 
-typedef struct command {
+struct ir_struct {
 
     const char* name;
     int         cmd;
@@ -38,8 +38,15 @@ typedef struct command {
     argument_t  argument_type;
     char        reg_type;
     int64_t     argument;
+    bool isPurposeOfCall;
+    struct ir_struct * ptrToCell;
 
-} ir_t;
+    bool isPurposeOfJmp;
+    struct ir_struct * ptrToJmp;
+
+};
+
+typedef struct ir_struct ir_t;
 
 typedef struct irInfo {
 

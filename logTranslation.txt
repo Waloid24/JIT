@@ -1,0 +1,389 @@
+------------------start(cmd)-------------------
+code line:                     90
+name of the calling function : void JITCompile(compilerInfo_t*)
+
+lengthx86Code:    2
+cmd:              48969 (bf49)
+name:             "m_r_im"
+size_cmd:         2
+-------------------end(cmd)--------------------
+
+------------------start(ABSptr)-------------------
+code line:                     91
+name of the calling function : void JITCompile(compilerInfo_t*)
+
+lengthx86Code:    10
+ptr:              94481708306432 (55ee3ca95000)
+-------------------end(ABSptr)--------------------
+
+------------------start(cmd)-------------------
+code line:                     93
+name of the calling function : void JITCompile(compilerInfo_t*)
+
+lengthx86Code:    13
+cmd:              14911817 (e38949)
+name:             "mov_r11_rsp"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     95
+name of the calling function : void JITCompile(compilerInfo_t*)
+
+lengthx86Code:    16
+cmd:              15108425 (e68949)
+name:             "mov_r14_rsp"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     96
+name of the calling function : void JITCompile(compilerInfo_t*)
+
+lengthx86Code:    19
+cmd:              15499592 (ec8148)
+name:             "sub_rsp_size_func"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(RELptr)-------------------
+code line:                     97
+name of the calling function : void JITCompile(compilerInfo_t*)
+
+lengthx86Code:    23
+ptr:              160 (a0)
+-------------------end(RELptr)--------------------
+
+------------------start(cmd)-------------------
+code line:                     253
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    25
+cmd:              47176 (b848)
+name:             "m_r_im"
+size_cmd:         2
+-------------------end(cmd)--------------------
+
+------------------start(num)-------------------
+code line:                     254
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    33
+number:           0
+-------------------end(num)--------------------
+
+------------------start(cmd)-------------------
+code line:                     255
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    34
+cmd:              80 (50)
+name:             "push_reg"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     266
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    35
+cmd:              88 (58)
+name:             "pop_reg"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     253
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    37
+cmd:              47176 (b848)
+name:             "m_r_im"
+size_cmd:         2
+-------------------end(cmd)--------------------
+
+------------------start(num)-------------------
+code line:                     254
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    45
+number:           10
+-------------------end(num)--------------------
+
+------------------start(cmd)-------------------
+code line:                     255
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    46
+cmd:              80 (50)
+name:             "push_reg"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     266
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    47
+cmd:              91 (5b)
+name:             "pop_reg"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     253
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    49
+cmd:              47176 (b848)
+name:             "m_r_im"
+size_cmd:         2
+-------------------end(cmd)--------------------
+
+------------------start(num)-------------------
+code line:                     254
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    57
+number:           155000
+-------------------end(num)--------------------
+
+------------------start(cmd)-------------------
+code line:                     255
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    58
+cmd:              80 (50)
+name:             "push_reg"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     327
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    61
+cmd:              16550221 (fc894d)
+name:             "mov_r12_r15"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     328
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    64
+cmd:              14614857 (df0149)
+name:             "add_r_r"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     329
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    67
+cmd:              8884033 (878f41)
+name:             "pop_r15_off"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(RELptr)-------------------
+code line:                     330
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    71
+ptr:              0 (0)
+-------------------end(RELptr)--------------------
+
+------------------start(cmd)-------------------
+code line:                     331
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    74
+cmd:              15173965 (e7894d)
+name:             "mov_r15_r12"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     253
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    76
+cmd:              47176 (b848)
+name:             "m_r_im"
+size_cmd:         2
+-------------------end(cmd)--------------------
+
+------------------start(num)-------------------
+code line:                     254
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    84
+number:           155000
+-------------------end(num)--------------------
+
+------------------start(cmd)-------------------
+code line:                     255
+name of the calling function : void x86TranslatePushPop(compilerInfo_t*, ir_t)
+
+lengthx86Code:    85
+cmd:              80 (50)
+name:             "push_reg"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
+------------------start(func)-------------------
+code line:                     190
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    Translate [OUT]
+-------------------end(func)--------------------
+
+------------------start(cmd)-------------------
+code line:                     199
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    90
+cmd:              154688688114 (24042a0ff2)
+name:             "cvtsi_xmm0_rsp"
+size_cmd:         5
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     200
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    93
+cmd:              5718355 (574153)
+name:             "pusha1"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     201
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    99
+cmd:              92639579952705 (544155415641)
+name:             "pusha2"
+size_cmd:         6
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     202
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    102
+cmd:              15042888 (e58948)
+name:             "mov_rbp_rsp"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     203
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    104
+cmd:              47176 (b848)
+name:             "mov_rax_1"
+size_cmd:         2
+-------------------end(cmd)--------------------
+
+------------------start(num)-------------------
+code line:                     204
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    112
+number:           1
+-------------------end(num)--------------------
+
+------------------start(cmd)-------------------
+code line:                     206
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    119
+cmd:              72057590026371400 (ffffff10e48148)
+name:             "and_rsp_10"
+size_cmd:         7
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     208
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    120
+cmd:              232 (e8)
+name:             "call"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
+------------------start(RELptr)-------------------
+code line:                     209
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    124
+ptr:              4275847795 (fedc4273)
+-------------------end(RELptr)--------------------
+
+------------------start(cmd)-------------------
+code line:                     211
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    127
+cmd:              15501640 (ec8948)
+name:             "mov_rsp_rbp"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     212
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    135
+cmd:              6863870941919796289 (5f415e415d415c41)
+name:             "popa1"
+size_cmd:         8
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     213
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    136
+cmd:              91 (5b)
+name:             "popa2"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     214
+name of the calling function : void x86TranslateOut(compilerInfo_t*, ir_t)
+
+lengthx86Code:    140
+cmd:              147096392 (8c48348)
+name:             "add_rsp_8"
+size_cmd:         4
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     695
+name of the calling function : void x86TranslateHlt(compilerInfo_t*, ir_t)
+
+lengthx86Code:    143
+cmd:              14453068 (dc894c)
+name:             "mov_rsp_r11"
+size_cmd:         3
+-------------------end(cmd)--------------------
+
+------------------start(cmd)-------------------
+code line:                     696
+name of the calling function : void x86TranslateHlt(compilerInfo_t*, ir_t)
+
+lengthx86Code:    144
+cmd:              195 (c3)
+name:             "ret_main"
+size_cmd:         1
+-------------------end(cmd)--------------------
+
