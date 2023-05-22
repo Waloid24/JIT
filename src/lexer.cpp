@@ -69,22 +69,14 @@ void JITConstructor (compilerInfo_t * compilerInfo)
     MY_ASSERT (compilerInfo->x86_memory_buf == nullptr, "Unable to allocate new memory")
     memset ((void*) compilerInfo->x86_memory_buf, 0, MEMORY_ALIGNMENT*sizeof(char));
 
-    compilerInfo->x86_out_buf = (char *) aligned_alloc (8, 8*sizeof(char));
-    memset ((void*) compilerInfo->x86_out_buf, 0, 8*sizeof(char));
-    compilerInfo->x86_in_buf  = (char *) aligned_alloc (4, 4*sizeof(char));
-    memset ((void*) compilerInfo->x86_out_buf, 0, 4*sizeof(char));
-
-    strncpy (compilerInfo->x86_out_buf, "%.3lf\n", 7*sizeof(char));
-    strncpy (compilerInfo->x86_in_buf, "%lf",  4*sizeof(char));
-
+    compilerInfo->x86StackBuf = (char *) aligned_alloc (MEMORY_ALIGNMENT, MEMORY_ALIGNMENT*sizeof(char));
+    MY_ASSERT (compilerInfo->x86StackBuf == nullptr, "Unable to allocate new memory")
+    memset ((void*) compilerInfo->x86StackBuf, 0, MEMORY_ALIGNMENT*sizeof(char));
 }
 
 void JITDestructor (compilerInfo_t * compilerInfo)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
-
-    free (compilerInfo->x86_in_buf);
-    free (compilerInfo->x86_out_buf);
     free (compilerInfo->x86_memory_buf);
     free (compilerInfo->machineCode.buf);
     free (compilerInfo->byteCode.buf);
@@ -133,28 +125,15 @@ static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, ir_t * irCommand)
 
                 for (size_t j = i+1; j < compilerInfo->irInfo.sizeArray; j++)
                 {
-                    // if (compilerInfo->irInfo.irArray[j].isPurposeOfJmp == true)
-                    // {
-                    //     compilerInfo->irInfo.irArray[j].ptrToJmp->argument += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
-                    // }
-                    // // if (compilerInfo->irInfo.irArray[j].cmd == CMD_CALL)
-                    // // {
-                    // //     compilerInfo->irInfo.irArray[j].argument += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
-                    // // }
                     compilerInfo->irInfo.irArray[j].x86ip += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
                 }
             }
-            // if (isJump (*irCommand))
-            // {
-            //     compilerInfo->irInfo.irArray[i].isPurposeOfJmp = true;
-            //     compilerInfo->irInfo.irArray[i].ptrToJmp = irCommand;
-            // }
             irCommand->ptrToCell = &(compilerInfo->irInfo.irArray[i]);
 
             return compilerInfo->irInfo.irArray[i].x86ip;
         }
     }
-    // MY_ASSERT (1, "Incorrect address to jmp or call address")        // TODO: there is jmp with 213 ip, fix it
+
     return NOT_PTR;
 }
 
@@ -184,7 +163,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
     size_t numCmds  = 0;
     size_t x86ip    = 0;
 
-    x86ip += SIZE_MOV_RNUM_IMMED + sizeof(u_int64_t) + SIZE_MOV_RNUM_REG + SIZE_MOV_RNUM_REG + SIZE_SUB_RSP + sizeof (int32_t);
+    x86ip += SIZE_MOV_RNUM_IMMED + sizeof(u_int64_t) + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_IMMED + sizeof (u_int64_t);
 
     #define DEF_CMD(nameCmd, numCmd, isArg, ...)            \
     if (cmd == CMD_##nameCmd)                               \

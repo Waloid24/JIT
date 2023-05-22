@@ -40,9 +40,9 @@ enum X86_CMD : u_int64_t {
     PUSH_R15_OFFSET = 0xb7ff41,       // must be followed by 32bit offset
 
     PUSHA1 = 0x544155415641,
-    PUSHA2 = 0x574153,
+    PUSHA2 = 0x5741534153,
     POPA1  = 0x5f415e415d415c41,
-    POPA2  = 0x5b,
+    POPA2  = 0x5b5b41,
     
     POP_REG = 0x58,                    // "|" regMask
     POP_RNUM = 0x5841,               // need to "|" with shifted left by 8
@@ -131,9 +131,9 @@ enum x86_Commands_Size {
     SIZE_MOV_R15_OFFSET_REG = 3,//ok
     SIZE_PUSH_REG = 1,          //ok
     SIZE_PUSHA1 = 6,
-    SIZE_PUSHA2 = 3,
+    SIZE_PUSHA2 = 5,
     SIZE_POPA1 = 8,
-    SIZE_POPA2 = 1,
+    SIZE_POPA2 = 3,
     SIZE_PUSH_RNUM = 2,         //ok
     SIZE_PUSH_R15_OFFSET = 3,   //ok
     SIZE_POP_REG = 1,           //ok
@@ -147,6 +147,8 @@ enum x86_Commands_Size {
     SIZE_CQO = 2,
     SIZE_IDIV_REG = 3,
     SIZE_CVTSI2SD_XMM0_RAX = 5,
+    SIZE_CVTSI2SD_XMM1_RAX = 5,
+    SIZE_CVTSI2SD_XMM2_RAX = 5,
     SIZE_CVTSD2SI_RAX_XMM0 = 5,
     SIZE_CVTSI2SD_XMM0_RSP = 5,
     SIZE_SQRTPD_XMM0_XMM0 = 4,

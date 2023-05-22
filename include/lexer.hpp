@@ -40,10 +40,6 @@ struct ir_struct {
     int64_t     argument;
     bool isPurposeOfCall;
     struct ir_struct * ptrToCell;
-
-    bool isPurposeOfJmp;
-    struct ir_struct * ptrToJmp;
-
 };
 
 typedef struct ir_struct ir_t;
@@ -65,6 +61,7 @@ typedef struct JIT_CompilerInfo {
     char * x86_memory_buf;
     char * x86_in_buf;
     char * x86_out_buf;
+    char * x86StackBuf;
 
 } compilerInfo_t;
 

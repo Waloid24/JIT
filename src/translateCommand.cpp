@@ -25,7 +25,7 @@ static void dumpFunc    (compilerInfo_t * compilerInfo, const char * message, si
 
 
 const int64_t BAD_NUMBER = 123456;
-const u_int32_t NUMBER_OF_FUNCTION = 20;
+const u_int32_t NUMBER_OF_FUNCTION = 100;
 
 #define dumpx86Func(compilerInfo, message)                             \
     dumpFunc (compilerInfo, message, __LINE__, __PRETTY_FUNCTION__);
@@ -87,14 +87,13 @@ void JITCompile (compilerInfo_t * compilerInfo)
     FILE * logfile = openFile ("logTranslation.txt", "w");
     fclose (logfile);
 
-    EMIT (compilerInfo, m_r_im, MOV_RNUM_IMMED, R15, 8)
+    EMIT (compilerInfo, mov_r15_mem_buf, MOV_RNUM_IMMED, R15, 8)
     x86insertAbsPtr (compilerInfo, (u_int64_t) compilerInfo->x86_memory_buf);
 
-    EMIT_MATH_OPERS (compilerInfo, mov_r11_rsp, MOV_RNUM_REG, R11, 16, RSP, 19)
-
     EMIT_MATH_OPERS (compilerInfo, mov_r14_rsp, MOV_RNUM_REG, R14, 16, RSP, 19)
-    EMIT (compilerInfo, sub_rsp_size_func, SUB_RSP, 0, 0)
-    x86insertRelPtr (compilerInfo, NUMBER_OF_FUNCTION*8)
+
+    EMIT (compilerInfo, mov_rsp_stackBuf, MOV_REG_IMMED, RSP, 8)
+    x86insertAbsPtr (compilerInfo, (u_int64_t) compilerInfo->x86StackBuf);
 
     size_t irIndex = 0;
     size_t machineIndex = 0;
@@ -179,8 +178,7 @@ static void myScanf (int * num)
 
 static void myPrintf (double num)
 {
-    fprintf (stderr, "OUT: %.3lf\n", num/1000);
-    num *= 2;
+    printf ("OUT: %.3lf\n", num/1000);
 }
 
 static void x86TranslateOut (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -189,21 +187,21 @@ static void x86TranslateOut (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     dumpx86Func (compilerInfo, "Translate [OUT]")
 
-    printf ("ptr printf = %p\n", (u_int64_t)myPrintf);
-
-    size_t addrToContinue = irCommand.x86ip + SIZE_CVTSI2SD_XMM0_RSP + SIZE_PUSHA1 + SIZE_PUSHA2 +
-        SIZE_MOV_REG_REG + SIZE_ALIGN_STACK + SIZE_x86_CALL + sizeof (int32_t);
+    size_t addrToContinue = irCommand.x86ip + SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_RNUM_REG +
+        SIZE_MOV_REG_RNUM + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + sizeof (int32_t);
 
     int32_t relAddrPrintf = (u_int64_t)myPrintf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
-    EMIT (compilerInfo, cvtsi_xmm0_rsp, CVTSI2SD_XMM0_RSP, 0, 0)
+    EMIT (compilerInfo, push_rax, POP_REG, RAX, 0)
+    EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+
+    EMIT_MATH_OPERS (compilerInfo, mov_r13_rsp, MOV_RNUM_REG, R13, 16, RSP, 19)
+    EMIT_MATH_OPERS (compilerInfo, mov_rsp_r14, MOV_REG_RNUM, RSP, 16, R14, 19)
+
     EMIT (compilerInfo, pusha1, PUSHA2, 0, 0)
     EMIT (compilerInfo, pusha2, PUSHA1, 0, 0)
-    EMIT_MATH_OPERS (compilerInfo, mov_rbp_rsp, MOV_REG_REG, RBP, 16, RSP,  19)
-    EMIT (compilerInfo, mov_rax_1, MOV_REG_IMMED, RAX, 8)
-    x86insertNum (compilerInfo, 1);
-    // EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)
-    EMIT (compilerInfo, and_rsp_10, AND_RSP_10, 0, 0)
+    EMIT_MATH_OPERS (compilerInfo, mov_rbp_rsp, MOV_REG_REG, RBP, 16, RSP, 19)
+    EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)
 
     EMIT (compilerInfo, call, x86_CALL, 0, 0)
     x86insertRelPtr (compilerInfo, relAddrPrintf)
@@ -211,8 +209,9 @@ static void x86TranslateOut (compilerInfo_t * compilerInfo, ir_t irCommand)
     EMIT_MATH_OPERS (compilerInfo, mov_rsp_rbp, MOV_REG_REG, RSP, 16, RBP, 19)
     EMIT (compilerInfo, popa1, POPA1, 0, 0)
     EMIT (compilerInfo, popa2, POPA2, 0, 0)
-    EMIT (compilerInfo, add_rsp_8, ADD_RSP_8, 0, 0)
 
+    EMIT_MATH_OPERS (compilerInfo, mov_r14_rsp, MOV_RNUM_REG, R14, 16, RSP, 19)
+    EMIT_MATH_OPERS (compilerInfo, mov_rsp_r13, MOV_REG_RNUM, RSP, 16, R13, 19)
 }
 
 static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -221,18 +220,24 @@ static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     dumpx86Func (compilerInfo, "Translate [IN]")
 
-    size_t addrToContinue = SIZE_SUB_RSP_8 + SIZE_LEA_RDI_RSP + SIZE_PUSHA1 + SIZE_PUSHA2 +
-        + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + sizeof(int32_t) + 
-        SIZE_MOV_R15_OFFSET_REG;
+    // size_t addrToContinue = irCommand.x86ip + SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_MOV_RNUM_REG +
+    //     + SIZE_MOV_REG_RNUM + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + sizeof(int32_t);
+
+    size_t addrToContinue = irCommand.x86ip + SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_PUSHA1 + SIZE_PUSHA2 + 
+            SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + sizeof(int32_t);
         
     int32_t relAddrScanf = (u_int64_t)myScanf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
     EMIT (compilerInfo, sub_rsp_8, SUB_RSP_8, 0, 0) // reserving space for input
-    EMIT (compilerInfo, lea_rdi_rsp, LEA_RDI_RSP, 0, 0)
+    EMIT_MATH_OPERS (compilerInfo, mov_rdi_rsp, MOV_REG_REG, RDI, 16, RSP, 19)
+
+    // EMIT_MATH_OPERS (compilerInfo, mov_r13_rsp, MOV_RNUM_REG, R13, 16, RSP, 19)
+    // EMIT_MATH_OPERS (compilerInfo, mov_rsp_r14, MOV_REG_RNUM, RSP, 16, R14, 19)
+
     EMIT (compilerInfo, pusha1, PUSHA2, 0, 0)
     EMIT (compilerInfo, pusha2, PUSHA1, 0, 0)
     EMIT (compilerInfo, mov_rbp_rsp, MOV_RBP_RSP, 0, 0)
-    EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)
+    EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)    
 
     EMIT (compilerInfo, call, x86_CALL, 0, 0)
     x86insertRelPtr (compilerInfo, relAddrScanf)
@@ -240,6 +245,9 @@ static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
     EMIT (compilerInfo, mov_rsp_rbp, MOV_RSP_RBP, 0, 0)
     EMIT (compilerInfo, popa1, POPA1, 0, 0)
     EMIT (compilerInfo, popa2, POPA2, 0, 0)
+
+    // EMIT_MATH_OPERS (compilerInfo, mov_r14_rsp, MOV_RNUM_REG, R14, 16, RSP, 19)
+    // EMIT_MATH_OPERS (compilerInfo, mov_rsp_r13, MOV_REG_RNUM, RSP, 16, R13, 19)
 }
 
 static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -441,9 +449,9 @@ static void x86TranslateSqrt (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     EMIT (compilerInfo, mov_rax, MOV_REG_IMMED, RAX, 8)
     x86insertNum (compilerInfo, 1000);
-    EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+    EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
 
-    EMIT_MATH_OPERS (compilerInfo, divpd, DIVPD_XMM0_XMM0, XMM0, 24, XMM1, 27)
+    EMIT_MATH_OPERS (compilerInfo, divpd_xmm0_xmm1, DIVPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
     EMIT (compilerInfo, sqrt, SQRTPD_XMM0_XMM0, 0, 0)
 
     EMIT (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
@@ -532,7 +540,7 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
         {
             EMIT (compilerInfo, pop_reg1, POP_REG, RAX, 0)
             EMIT (compilerInfo, pop_reg2, POP_REG, RDX, 0)
-            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, ADD_REG_REG, RDX, 19, RDX, 16)
+            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, ADD_REG_REG, RAX, 16, RDX, 19)
             EMIT (compilerInfo, push_reg1, PUSH_REG, RAX, 0)
             break;
         }
@@ -542,7 +550,7 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
         {
             EMIT (compilerInfo, pop_reg1, POP_REG, RAX, 0)
             EMIT (compilerInfo, pop_reg2, POP_REG, RDX, 0)
-            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, SUB_REG_REG, RDX, 19, RDX, 16)
+            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, SUB_REG_REG, RAX, 16, RDX, 19)
             EMIT (compilerInfo, push_reg1, PUSH_REG, RAX, 0)
             break;
         }
@@ -550,20 +558,20 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
         case CMD_MUL:
         {
             EMIT (compilerInfo, pop1, POP_REG, RAX, 0)
-            EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+            EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
 
             EMIT (compilerInfo, pop2, POP_REG, RAX, 0)
-            EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+            EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
 
             EMIT (compilerInfo, mov_reg_num, MOV_REG_IMMED, RAX, 8)
             x86insertNum (compilerInfo, 1000);
-            EMIT (compilerInfo, cvtsi_xmm2_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+            EMIT (compilerInfo, cvtsi_xmm2_rax, CVTSI2SD_XMM2_RAX, 0, 0)
 
-            EMIT_MATH_OPERS (compilerInfo, divpd1, DIVPD_XMM0_XMM0, XMM0, 24, XMM2, 27)
-            EMIT_MATH_OPERS (compilerInfo, divpd2, DIVPD_XMM0_XMM0, XMM1, 24, XMM2, 27)
+            EMIT_MATH_OPERS (compilerInfo, divpd1, DIVPD_XMM0_XMM0, XMM0, 27, XMM2, 24)
+            EMIT_MATH_OPERS (compilerInfo, divpd2, DIVPD_XMM0_XMM0, XMM1, 27, XMM2, 24)
 
-            EMIT_MATH_OPERS (compilerInfo, mulpd1, MULPD_XMM0_XMM0, XMM0, 24, XMM1, 27)
-            EMIT_MATH_OPERS (compilerInfo, mulpd2, MULPD_XMM0_XMM0, XMM0, 24, XMM2, 27)
+            EMIT_MATH_OPERS (compilerInfo, mulpd1, MULPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
+            EMIT_MATH_OPERS (compilerInfo, mulpd2, MULPD_XMM0_XMM0, XMM0, 27, XMM2, 24)
 
             EMIT (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
             EMIT (compilerInfo, push, PUSH_REG, RAX, 0)
@@ -574,17 +582,17 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
         case CMD_DIV:
         {
             EMIT (compilerInfo, pop1, POP_REG, RAX, 0)
-            EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+            EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
 
             EMIT (compilerInfo, pop2, POP_REG, RAX, 0)
             EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
 
             EMIT (compilerInfo, mov_reg_num, MOV_REG_IMMED, RAX, 8)
             x86insertNum (compilerInfo, 1000);
-            EMIT (compilerInfo, cvtsi_xmm2_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+            EMIT (compilerInfo, cvtsi_xmm2_rax, CVTSI2SD_XMM2_RAX, 0, 0)
 
-            EMIT_MATH_OPERS (compilerInfo, divpd, DIVPD_XMM0_XMM0, XMM0, 24, XMM1, 27)
-            EMIT_MATH_OPERS (compilerInfo, mulpd, MULPD_XMM0_XMM0, XMM0, 24, XMM2, 27)
+            EMIT_MATH_OPERS (compilerInfo, divpd, DIVPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
+            EMIT_MATH_OPERS (compilerInfo, mulpd, MULPD_XMM0_XMM0, XMM0, 27, XMM2, 24)
 
             EMIT (compilerInfo, cvtsd_rax_xmm0, CVTSD2SI_RAX_XMM0, 0, 0)
             EMIT (compilerInfo, push, PUSH_REG, RAX, 0)
@@ -664,7 +672,7 @@ static void dumpRelPtr (compilerInfo_t * compilerInfo, u_int32_t ptr, size_t lin
     logDumpline ("name of the calling function : %s\n\n", nameCallingFunc)
 
     logDumpline ("lengthx86Code:    %zu\n", compilerInfo->machineCode.len)
-    logDumpline ("ptr:              %u (%lx)\n", ptr, ptr)
+    logDumpline ("ptr:              %u (%x)\n", ptr, ptr)
 
     logDumpline ("-------------------end(RELptr)--------------------\n\n")
 
@@ -692,7 +700,7 @@ static void x86TranslateHlt (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
-    EMIT_MATH_OPERS (compilerInfo, mov_rsp_r11, MOV_REG_RNUM, RSP, 16, R11, 19)
+    EMIT_MATH_OPERS (compilerInfo, mov_rsp_r14, MOV_REG_RNUM, RSP, 16, R14, 19)
     EMIT (compilerInfo, ret_main, x86_RET, 0, 0)
 }
 

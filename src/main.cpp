@@ -17,7 +17,7 @@ int main (int argc, char * argv[])
 
     compilerInfo_t compilerInfo = {};
 
-    compilerInfo.byteCode = readCode ("printf.bin");
+    compilerInfo.byteCode = readCode ("scanf.bin");
 
     // dumpCode        (&compilerInfo);
 
@@ -61,13 +61,13 @@ void dumpx86MachineCode (compilerInfo_t compilerInfo)
 
     size_t numWrittenElems = fwrite (compilerInfo.machineCode.buf, compilerInfo.machineCode.len, 1, dumpFile);
 
+    fclose (dumpFile);
+
     return;
 }
 
 void runCode (compilerInfo_t compilerInfo)
 {
-    // int mprotectResult = mprotect (compilerInfo.machineCode.buf, compilerInfo.machineCode.len + 1, PROT_EXEC | PROT_READ | PROT_WRITE);
-
     int mprotectResult = mprotect (compilerInfo.machineCode.buf, compilerInfo.machineCode.len*sizeof(char) + 1, PROT_EXEC | PROT_READ | PROT_WRITE);
 
     if (mprotectResult == -1)
