@@ -17,7 +17,7 @@ int main (int argc, char * argv[])
 
     compilerInfo.byteCode = readCode (argv[1]);
 
-    dumpCode        (&compilerInfo);
+    // dumpCode        (&compilerInfo);
 
     createIRArray   (&compilerInfo);
 
@@ -35,11 +35,9 @@ int main (int argc, char * argv[])
 
     setIp (&compilerInfo);
 
-    graphvizDumpIR (compilerInfo);
-
     fillJmpsCalls (&compilerInfo);
 
-    graphvizDumpIR (compilerInfo);
+    // graphvizDumpIR (compilerInfo);
 
     JITConstructor (&compilerInfo);
 
@@ -67,7 +65,7 @@ void runCode (compilerInfo_t compilerInfo)
     MY_ASSERT (executableBuffer == nullptr, "Error in buffer casting");
 
     clock_t begin = clock ();
-    // for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 1000000; i++)
         executableBuffer();
 
     clock_t end = clock ();
