@@ -1,9 +1,12 @@
 #include "../include/dumpIr.hpp"
 #include "../include/lexer.hpp"
 
+//===================================================dump IR================================================================
+int NUMBER_PICTURES = 1;
 
 #define dumpline(text, ...)\
 		fprintf (IRdumpFile, text, ##__VA_ARGS__)
+
 
 static int isPushPop (int cmd)
 {
@@ -13,8 +16,6 @@ static int isPushPop (int cmd)
     }
     return 0;
 }
-
-int NUMBER_PICTURES = 1;
 
 static bool isJump (ir_t irCommand)
 {
@@ -32,8 +33,7 @@ void graphvizDumpIR (compilerInfo_t compilerInfo)
 {
     MY_ASSERT (compilerInfo.irInfo.irArray == nullptr, "There is no access to the commands array");
 
-    FILE* IRdumpFile = fopen("./graph/ir_dump.dot", "w");
-    MY_ASSERT (IRdumpFile == nullptr, "Unable to open the file");
+    FILE* IRdumpFile = openFile("./graph/ir_dump.dot", "w");
 
     dumpline("digraph {\n");
     dumpline("rankdir=LR;\n");
@@ -112,3 +112,36 @@ void graphvizDumpIR (compilerInfo_t compilerInfo)
     NUMBER_PICTURES++;
     system(cmd);
 }
+//===========================================================================================================================
+
+
+//======================================================dump x86 commands====================================================
+void dumpx86MachineCode (compilerInfo_t compilerInfo)
+{
+    FILE * dumpFile = openFile ("./logs/dumpx86.bin", "w");
+
+    size_t numWrittenElems = fwrite (compilerInfo.machineCode.buf, compilerInfo.machineCode.len, 1, dumpFile);
+
+    fclose (dumpFile);
+
+    return;
+}
+//===========================================================================================================================
+
+
+//==================================================dump byte code===========================================================
+void dumpCode (compilerInfo_t * compilerInfo)
+{
+    FILE * logfile = openFile ("./logs/logCpu.txt", "a");
+
+    fprintf (logfile, "\n$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+
+    for (size_t i = 0; i < compilerInfo->byteCode.sizeBuf/sizeof(int); i++)
+    {
+        fprintf (logfile, "code[%zu] = %d\n", i, (compilerInfo->byteCode.buf)[i]);
+    }
+
+    fprintf (logfile, "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+    fclose (logfile);
+}
+//===========================================================================================================================

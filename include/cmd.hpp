@@ -13,9 +13,8 @@ DEF_CMD (ADD,  3,  NO,
         .cmd            = CMD_ADD,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_POP_REG + SIZE_POP_REG + SIZE_ADD_REG_REG + SIZE_PUSH_REG
     };
-    x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_ADD_REG_REG + SIZE_PUSH_REG;
 })
 DEF_CMD (SUB,  4,  NO,
 {
@@ -24,9 +23,8 @@ DEF_CMD (SUB,  4,  NO,
         .cmd            = CMD_SUB,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_POP_REG + SIZE_POP_REG + SIZE_SUB_REG_REG + SIZE_PUSH_REG
     };
-    x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_SUB_REG_REG + SIZE_PUSH_REG;
 })
 DEF_CMD (MUL,  5,  NO,
 {
@@ -35,13 +33,12 @@ DEF_CMD (MUL,  5,  NO,
         .cmd            = CMD_MUL,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_POP_REG +
+                            SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED + SIZE_NUM + 
+                            SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + SIZE_DIVPD_XMM0_XMM0 +
+                            SIZE_MULPD_XMM0_XMM0 + SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 +
+                            SIZE_PUSH_REG
     };
-    x86ip += SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_POP_REG +
-    SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED + SIZE_NUM + 
-    SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + SIZE_DIVPD_XMM0_XMM0 +
-    SIZE_MULPD_XMM0_XMM0 + SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 +
-    SIZE_PUSH_REG;
 })
 DEF_CMD (DIV,  6,  NO,
 {
@@ -50,13 +47,12 @@ DEF_CMD (DIV,  6,  NO,
         .cmd            = CMD_DIV,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_POP_REG +
+                            SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED + SIZE_NUM +
+                            SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + 
+                            SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 + 
+                            SIZE_PUSH_REG
     };
-    x86ip += SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_POP_REG +
-    SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED + SIZE_NUM +
-    SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + 
-    SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 + 
-    SIZE_PUSH_REG;
 })
 DEF_CMD (OUT,  7,  NO,
 {
@@ -65,10 +61,9 @@ DEF_CMD (OUT,  7,  NO,
         .cmd            = CMD_OUT,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_CVTSI2SD_XMM0_RAX + SIZE_PUSHA2 + SIZE_PUSHA1 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL +
+                            SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POPA1 + SIZE_POPA2 + SIZE_ADD_RSP_8
     };
-    x86ip += SIZE_CVTSI2SD_XMM0_RAX + SIZE_PUSHA2 + SIZE_PUSHA1 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL +
-             SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POPA1 + SIZE_POPA2 + SIZE_ADD_RSP_8;
 })
 DEF_CMD (IN,   8,  NO,
 {
@@ -77,10 +72,9 @@ DEF_CMD (IN,   8,  NO,
         .cmd            = CMD_IN,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + 
+                            SIZE_x86_CALL + SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POPA1 + SIZE_POPA2
     };
-    x86ip += SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + 
-            SIZE_x86_CALL + SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POPA1 + SIZE_POPA2;
 })
 DEF_CMD (JMP,  9,  YES,
 {
@@ -90,11 +84,10 @@ DEF_CMD (JMP,  9,  YES,
         .cmd            = CMD_JMP,
         .nativeSize     = 2,
         .nativeIP       = i-1,
-        .x86ip          = x86ip,
         .argument_type  = LABEL,
-        .argument       = compilerInfo->byteCode.buf[i]
+        .argument       = compilerInfo->byteCode.buf[i],
+        .x86size        = SIZE_x86_JMP + SIZE_REL_PTR
     };
-    x86ip += SIZE_x86_JMP + SIZE_REL_PTR;
 })
 DEF_CMD (CALL, 10, YES,
 {
@@ -105,11 +98,11 @@ DEF_CMD (CALL, 10, YES,
         .cmd            = CMD_CALL,
         .nativeSize     = 2,
         .nativeIP       = i-1,
-        .x86ip          = x86ip,
         .argument_type  = LABEL,
-        .argument       = compilerInfo->byteCode.buf[i]
+        .argument       = compilerInfo->byteCode.buf[i],
+        .x86size        = SIZE_MOV_REG_IMMED + SIZE_ABS_PTR + SIZE_MOV_MEM_R14_RAX + 
+                            SIZE_ADD_R14_8 + SIZE_x86_JMP + SIZE_REL_PTR
     };
-    x86ip += SIZE_MOV_REG_IMMED + SIZE_ABS_PTR + SIZE_MOV_MEM_R14_RAX + SIZE_ADD_R14_8 + SIZE_x86_JMP + SIZE_REL_PTR;
 })
 DEF_CMD (RET,  11, NO,
 {
@@ -119,9 +112,8 @@ DEF_CMD (RET,  11, NO,
         .cmd            = CMD_RET,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_SUB_R14_8 + SIZE_PUSH_MEM_R14 + SIZE_x86_RET
     };
-    x86ip += SIZE_SUB_R14_8 + SIZE_PUSH_MEM_R14 + SIZE_x86_RET;
 })
 DEF_CMD (JA,   12, YES,
 {
@@ -160,9 +152,8 @@ DEF_CMD (HLT,  18, NO,
         .cmd            = CMD_HLT,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_x86_RET
     };
-    x86ip += SIZE_x86_RET;
 })
 DEF_CMD (SQRT, 19, NO,
 {
@@ -171,11 +162,10 @@ DEF_CMD (SQRT, 19, NO,
         .cmd            = CMD_SQRT,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86ip          = x86ip
+        .x86size        = SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED +
+                            SIZE_NUM + SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + 
+                            SIZE_SQRTPD_XMM0_XMM0 + SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 + SIZE_PUSH_REG
     };
-    x86ip += SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED +
-    SIZE_NUM + SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + 
-    SIZE_SQRTPD_XMM0_XMM0 + SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 + SIZE_PUSH_REG;
 })
 DEF_CMD (MEOW, 20, NO,
 {
@@ -183,8 +173,7 @@ DEF_CMD (MEOW, 20, NO,
         .name           = "meow",
         .cmd            = CMD_MEOW,
         .nativeSize     = 1,
-        .nativeIP       = i,
-        .x86ip          = x86ip
+        .nativeIP       = i
     };
     MY_ASSERT (1, "This version doesn't support this command (meow), sorry :(")
 })

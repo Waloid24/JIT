@@ -38,7 +38,7 @@ struct ir_struct {
     argument_t  argument_type;
     char        reg_type;
     int64_t     argument;
-    struct ir_struct * ptrToCell;
+    size_t      x86size;
 };
 
 typedef struct ir_struct ir_t;
@@ -72,5 +72,6 @@ void fillIRArray    (compilerInfo_t * compilerInfo);
 void fillJmpsCalls  (compilerInfo_t * compilerInfo);
 void JITConstructor (compilerInfo_t * compilerInfo);
 void JITDestructor  (compilerInfo_t * compilerInfo);
+void setIp          (compilerInfo_t * compilerInfo);
 
 #endif

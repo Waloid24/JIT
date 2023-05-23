@@ -2,6 +2,7 @@
 
 static void x86TranslatePushPop     (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irCommand);
+static void x86TranslateMov         (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateSqrt        (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateComp        (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateJmpCall     (compilerInfo_t * compilerInfo, ir_t irCommand);
@@ -84,7 +85,7 @@ void JITCompile (compilerInfo_t * compilerInfo)
     size_t sizeArr = compilerInfo->irInfo.sizeArray;
     ir_t * irArr   = compilerInfo->irInfo.irArray;
 
-    FILE * logfile = openFile ("logTranslation.txt", "w");
+    FILE * logfile = openFile ("./logs/logTranslation.txt", "w");           // clear old information
     fclose (logfile);
 
     EMIT (compilerInfo, mov_r15_mem_buf, MOV_RNUM_IMMED, R15, 8)
@@ -155,7 +156,15 @@ void JITCompile (compilerInfo_t * compilerInfo)
                 x86TranslateRet (compilerInfo, irArr[irIndex]);
                 break;
 
+            case CMD_TRASH:
+                break;
+
+            case CMD_MOV:
+                x86TranslateMov (compilerInfo, irArr[irIndex]);
+                break;
+
             default:
+                printf ("incorrect command type: %d\n", irArr[irIndex].cmd);
                 MY_ASSERT (1, "Incorrect command type");
                 break;
         }
@@ -172,6 +181,13 @@ static void myScanf (int * num)
 static void myPrintf (double num)
 {
     printf ("OUT: %.3lf\n", num/1000);
+}
+
+static void x86TranslateMov (compilerInfo_t * compilerInfo, ir_t irCommand)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
+    EMIT (compilerInfo, mov_reg_num, MOV_REG_IMMED, irCommand.reg_type, 8)
+    x86insertNum (compilerInfo, irCommand.argument)
 }
 
 static void x86TranslateOut (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -431,19 +447,19 @@ static void x86TranslateSqrt (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
-    EMIT (compilerInfo, pop_rax, POP_REG, RAX, 0)
-    EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+    EMIT            (compilerInfo, pop_rax, POP_REG, RAX, 0)
+    EMIT            (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
 
-    EMIT (compilerInfo, mov_rax, MOV_REG_IMMED, RAX, 8)
-    x86insertNum (compilerInfo, 1000);
-    EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
+    EMIT            (compilerInfo, mov_rax, MOV_REG_IMMED, RAX, 8)
+    x86insertNum    (compilerInfo, 1000);
+    EMIT            (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
 
     EMIT_MATH_OPERS (compilerInfo, divpd_xmm0_xmm1, DIVPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
-    EMIT (compilerInfo, sqrt, SQRTPD_XMM0_XMM0, 0, 0)
+    EMIT            (compilerInfo, sqrt, SQRTPD_XMM0_XMM0, 0, 0)
     EMIT_MATH_OPERS (compilerInfo, mulpd_xmm0_xmm1, MULPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
 
-    EMIT (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
-    EMIT (compilerInfo, push, PUSH_REG, RAX, 0)
+    EMIT            (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
+    EMIT            (compilerInfo, push, PUSH_REG, RAX, 0)
 }
 
 static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -500,17 +516,16 @@ static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
         }
     }
 
-    x86insertCmd (compilerInfo, bool_expr);                                 // 
-                                                                            // -> j? .equal
-    int32_t relAddr = SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP +
-                    SIZE_REL_PTR;
-    x86insertRelPtr (compilerInfo, relAddr);                 //
+    x86insertCmd (compilerInfo, bool_expr);                                             // 
+    int32_t relAddr = SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP +    // -> j? .equal
+                    SIZE_REL_PTR;                                                       //
+    x86insertRelPtr (compilerInfo, relAddr);                                            //
 
-    EMIT (compilerInfo, mov_rax_0, MOV_REG_IMMED, RAX, 8)   //
-    x86insertNum (compilerInfo, 0);                         // -> push 0
-    EMIT (compilerInfo, push_rax, PUSH_REG, RAX, 0)         //
+    EMIT            (compilerInfo, mov_rax_0, MOV_REG_IMMED, RAX, 8)    //
+    x86insertNum    (compilerInfo, 0);                                  // -> push 0
+    EMIT            (compilerInfo, push_rax, PUSH_REG, RAX, 0)          //
 
-    EMIT (compilerInfo, jmp_end, x86_JMP, 0, 0)             //jmp .after_equal
+    EMIT (compilerInfo, jmp_end, x86_JMP, 0, 0)                         //jmp .after_equal
     int32_t relAddrEnd = SIZE_MOV_REG_IMMED+SIZE_NUM+SIZE_PUSH_REG;
     x86insertRelPtr (compilerInfo, relAddrEnd);
 
@@ -600,7 +615,7 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
 
 static void dumpCmd (compilerInfo_t * compilerInfo, opcode_t cmdCode, const char * name, size_t lineSrcFile, const char * nameCallingFunc)
 {
-    FILE * logfile = openFile ("logTranslation.txt", "a");
+    FILE * logfile = openFile ("./logs/logTranslation.txt", "a");
 
     logDumpline ("------------------start(cmd)-------------------\n")
 
@@ -622,7 +637,7 @@ static void dumpCmd (compilerInfo_t * compilerInfo, opcode_t cmdCode, const char
 
 static void dumpNum (compilerInfo_t * compilerInfo, int64_t number, size_t lineSrcFile, const char * nameCallingFunc)
 {
-    FILE * logfile = openFile ("logTranslation.txt", "a");
+    FILE * logfile = openFile ("./logs/logTranslation.txt", "a");
 
     logDumpline ("------------------start(num)-------------------\n")
 
@@ -639,7 +654,7 @@ static void dumpNum (compilerInfo_t * compilerInfo, int64_t number, size_t lineS
 
 static void dumpAbsPtr (compilerInfo_t * compilerInfo, u_int64_t ptr, size_t lineSrcFile, const char * nameCallingFunc)
 {
-    FILE * logfile = openFile ("logTranslation.txt", "a");
+    FILE * logfile = openFile ("./logs/logTranslation.txt", "a");
 
     logDumpline ("------------------start(ABSptr)-------------------\n")
 
@@ -656,7 +671,7 @@ static void dumpAbsPtr (compilerInfo_t * compilerInfo, u_int64_t ptr, size_t lin
 
 static void dumpRelPtr (compilerInfo_t * compilerInfo, u_int32_t ptr, size_t lineSrcFile, const char * nameCallingFunc)
 {
-    FILE * logfile = openFile ("logTranslation.txt", "a");
+    FILE * logfile = openFile ("./logs/logTranslation.txt", "a");
 
     logDumpline ("------------------start(RELptr)-------------------\n")
 
@@ -673,7 +688,7 @@ static void dumpRelPtr (compilerInfo_t * compilerInfo, u_int32_t ptr, size_t lin
 
 static void dumpFunc (compilerInfo_t * compilerInfo, const char * message, size_t lineSrcFile, const char * nameCallingFunc)
 {
-    FILE * logfile = openFile ("logTranslation.txt", "a");
+    FILE * logfile = openFile ("./logs/logTranslation.txt", "a");
 
     logDumpline ("------------------start(func)-------------------\n")
 

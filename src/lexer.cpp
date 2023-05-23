@@ -20,12 +20,11 @@ const int NOT_PTR = -1;
         .cmd            = CMD_##command,                \
         .nativeSize     = 2,                            \
         .nativeIP       = i-1,                          \
-        .x86ip          = x86ip,                        \
         .argument_type  = LABEL,                        \
-        .argument       = compilerInfo->byteCode.buf[i] \
-    };                                                  \
-    x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +   \
-    SIZE_x86_COND_JMP + SIZE_REL_PTR;
+        .argument       = compilerInfo->byteCode.buf[i], \
+        .x86size        = SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +   \
+                            SIZE_x86_COND_JMP + SIZE_REL_PTR                 \
+    };
 
 #define BOOL_EXPR(command)                          \
     compilerInfo->irInfo.irArray[numCmds] = {       \
@@ -33,13 +32,12 @@ const int NOT_PTR = -1;
         .cmd            = CMD_##command,            \
         .nativeSize     = 2,                        \
         .nativeIP       = i,                        \
-        .x86ip          = x86ip,                    \
-        .argument_type  = LABEL                     \
-    };                                              \
-    x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +   \
-    SIZE_x86_COND_JMP + SIZE_REL_PTR + SIZE_MOV_REG_IMMED +     \
-    SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP + SIZE_REL_PTR +    \
-    SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG;
+        .argument_type  = LABEL,                    \
+        .x86size        = SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +              \
+                            SIZE_x86_COND_JMP + SIZE_REL_PTR + SIZE_MOV_REG_IMMED +     \
+                            SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP + SIZE_REL_PTR +    \
+                            SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG               \
+    };
 
 static int checkBit         (const int value, const int position);
 static int * createArrRegs  (size_t numRegs);
@@ -53,8 +51,6 @@ void createIRArray (compilerInfo_t * compilerInfo)
     MY_ASSERT (compilerInfo->irInfo.irArray == nullptr, "Unable to allocate memory");
 }
 
-
-
 void JITConstructor (compilerInfo_t * compilerInfo)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
@@ -62,8 +58,6 @@ void JITConstructor (compilerInfo_t * compilerInfo)
     compilerInfo->machineCode.buf = (char *) aligned_alloc (PAGE_SIZE, 4096*sizeof(char));
     MY_ASSERT (compilerInfo->machineCode.buf == nullptr, "Unable to allocate new memory")
     memset ((void*) compilerInfo->machineCode.buf, 0, 4096*sizeof(char));
-
-    printf ("compilerInfo->machineCode.buf = %p\n", compilerInfo->machineCode.buf);
 
     compilerInfo->x86_memory_buf = (char *) aligned_alloc (MEMORY_ALIGNMENT, MEMORY_ALIGNMENT*sizeof(char));
     MY_ASSERT (compilerInfo->x86_memory_buf == nullptr, "Unable to allocate new memory")
@@ -117,16 +111,28 @@ static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, ir_t * irCommand)
     {
         if (compilerInfo->irInfo.irArray[i].nativeIP == irCommand->argument)
         {
-            printf ("compilerInfo->irInfo.irArray[i].nativeIP = %zu\n"
-                    "irCommand->argument = %ld\n"
-                    "compilerInfo->irInfo.irArray[i].x86ip = %zu\n\n", compilerInfo->irInfo.irArray[i].nativeIP, irCommand->argument,
-                                                                       compilerInfo->irInfo.irArray[i].x86ip);
-
             return compilerInfo->irInfo.irArray[i].x86ip;
         }
     }
 
     return NOT_PTR;
+}
+
+void setIp (compilerInfo_t * compilerInfo)
+{
+    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
+
+    size_t x86ip = SIZE_MOV_RNUM_IMMED + sizeof(u_int64_t) + SIZE_MOV_RNUM_IMMED + sizeof (u_int64_t);;
+
+    for (size_t i = 0; i < compilerInfo->irInfo.sizeArray; i++)
+    {
+        if (compilerInfo->irInfo.irArray[i].cmd != CMD_TRASH)
+        {
+            compilerInfo->irInfo.irArray[i].x86ip = x86ip;
+            x86ip += compilerInfo->irInfo.irArray[i].x86size;
+        }
+        
+    }
 }
 
 void fillIRArray (compilerInfo_t * compilerInfo)
@@ -137,9 +143,6 @@ void fillIRArray (compilerInfo_t * compilerInfo)
     int cmd = -1;
 
     size_t numCmds  = 0;
-    size_t x86ip    = 0;
-
-    x86ip += SIZE_MOV_RNUM_IMMED + sizeof(u_int64_t) + SIZE_MOV_RNUM_IMMED + sizeof (u_int64_t);
 
     #define DEF_CMD(nameCmd, numCmd, isArg, ...)            \
     if (cmd == CMD_##nameCmd)                               \
@@ -149,8 +152,6 @@ void fillIRArray (compilerInfo_t * compilerInfo)
     for (size_t i = 0; ; i++, numCmds++)
     {
         cmd = (compilerInfo->byteCode.buf[i] & MASK);
-
-        printf ("cmd = %d, x86ip = %lx\n", cmd, x86ip);
 
         if ( (checkBit(compilerInfo->byteCode.buf[i], NUM) == 1) && 
              (checkBit(compilerInfo->byteCode.buf[i], REG) == 0) && 
@@ -164,16 +165,15 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_PUSH,
                     .nativeSize     = 2,
                     .nativeIP       = i-1,
-                    .x86ip          = x86ip,
                     .argument_type  = NUMBER,
-                    .argument       = compilerInfo->byteCode.buf[i]
+                    .argument       = compilerInfo->byteCode.buf[i],
+                    .x86size        = SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG
                 };
             }
             else
             {
                 MY_ASSERT (1, "Wrong command (section push_num)");
             }
-            x86ip += SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG;
         }
         else if ((checkBit(compilerInfo->byteCode.buf[i], NUM) == 0) && 
                  (checkBit(compilerInfo->byteCode.buf[i], REG) == 1) && 
@@ -190,9 +190,9 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_PUSH,
                     .nativeSize     = 2,
                     .nativeIP       = i-1,
-                    .x86ip          = x86ip,
                     .argument_type  = REGISTER,
-                    .reg_type       = nReg
+                    .reg_type       = nReg,
+                    .x86size        = SIZE_PUSH_REG
                 };
             }
             else if (cmd == CMD_POP)
@@ -202,16 +202,15 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_POP,
                     .nativeSize     = 2,
                     .nativeIP       = i-1,
-                    .x86ip          = x86ip,
                     .argument_type  = REGISTER,
-                    .reg_type       = nReg
+                    .reg_type       = nReg,
+                    .x86size        = SIZE_POP_REG
                 };
             }
             else
             {
                 MY_ASSERT (1, "Wrong command");
             }
-            x86ip += SIZE_PUSH_REG;
         }
         else if ((cmd == CMD_PUSH) && 
                  (checkBit(compilerInfo->byteCode.buf[i], NUM) == 1) && 
@@ -229,12 +228,11 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                 .cmd            = CMD_PUSH,
                 .nativeSize     = 3, 
                 .nativeIP       = i-2,
-                .x86ip          = x86ip,
                 .argument_type  = NUM_REG,
                 .reg_type       = nReg,
-                .argument       = numIndex
+                .argument       = numIndex,
+                .x86size        = SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_ADD_REG_REG + SIZE_PUSH_REG
             };
-            x86ip += SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_ADD_REG_REG + SIZE_PUSH_REG;
         }
         else if ((checkBit(compilerInfo->byteCode.buf[i], NUM) == 1) && 
                  (checkBit(compilerInfo->byteCode.buf[i], REG) == 0) && 
@@ -252,9 +250,9 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_PUSH,
                     .nativeSize     = 2,
                     .nativeIP       = i-1,
-                    .x86ip          = x86ip,
                     .argument_type  = MEM_NUM,
-                    .argument       = ramIndex
+                    .argument       = ramIndex,
+                    .x86size        = SIZE_PUSH_R15_OFFSET + SIZE_REL_PTR
                 }; 
             }
             else if (cmd == CMD_POP)
@@ -264,16 +262,15 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_POP,
                     .nativeSize     = 2,
                     .nativeIP       = i-1,
-                    .x86ip          = x86ip,
                     .argument_type  = MEM_NUM,
-                    .argument       = ramIndex
+                    .argument       = ramIndex,
+                    .x86size        = SIZE_PUSH_R15_OFFSET + SIZE_REL_PTR
                 }; 
             }
             else 
             {
                 MY_ASSERT (1, "Wrong command");
             }
-            x86ip += SIZE_PUSH_R15_OFFSET + SIZE_REL_PTR;
         }
         else if ((checkBit(compilerInfo->byteCode.buf[i], NUM) == 0) && 
                  (checkBit(compilerInfo->byteCode.buf[i], REG) == 1) && 
@@ -290,9 +287,10 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_PUSH,
                     .nativeSize     = 2,
                     .nativeIP       = i-1,
-                    .x86ip          = x86ip,
                     .argument_type  = MEM_REG,
-                    .reg_type       = nReg
+                    .reg_type       = nReg,
+                    .x86size        = SIZE_MOV_RNUM_RNUM + SIZE_ADD_RNUM_REG + 
+                                        SIZE_PUSH_R15_OFFSET + SIZE_REL_PTR + SIZE_MOV_RNUM_RNUM    
                 };
             }
             else if (cmd == CMD_POP)
@@ -302,16 +300,16 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_POP,
                     .nativeSize     = 2,
                     .nativeIP       = i-1,
-                    .x86ip          = x86ip,
                     .argument_type  = MEM_REG,
-                    .reg_type       = nReg
+                    .reg_type       = nReg,
+                    .x86size        = SIZE_MOV_RNUM_RNUM + SIZE_ADD_RNUM_REG + 
+                                        SIZE_PUSH_R15_OFFSET + SIZE_REL_PTR + SIZE_MOV_RNUM_RNUM    
                 }; 
             }
             else 
             {
                 MY_ASSERT (1, "Wrong command");
             }
-            x86ip += SIZE_MOV_RNUM_RNUM + SIZE_ADD_RNUM_REG + SIZE_PUSH_R15_OFFSET + SIZE_REL_PTR + SIZE_MOV_RNUM_RNUM;
         }
         else if ((checkBit(compilerInfo->byteCode.buf[i], NUM) == 1) && 
                 (checkBit(compilerInfo->byteCode.buf[i], REG) == 1) && 
@@ -331,10 +329,11 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_PUSH,
                     .nativeSize     = 3,
                     .nativeIP       = i-2,
-                    .x86ip          = x86ip,
                     .argument_type  = MEM_NUM_REG,
                     .reg_type       = nReg,
-                    .argument       = ramIndex*8
+                    .argument       = ramIndex*8,
+                    .x86size        = SIZE_MOV_RNUM_RNUM + SIZE_ADD_REG_REG + 
+                                        SIZE_POP_R15_OFFSET + SIZE_REL_PTR + SIZE_MOV_RNUM_RNUM
                 };
             }
             else if (cmd == CMD_POP)
@@ -344,17 +343,17 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .cmd            = CMD_POP,
                     .nativeSize     = 3,
                     .nativeIP       = i-2,
-                    .x86ip          = x86ip,
                     .argument_type  = MEM_NUM_REG,
                     .reg_type       = nReg,
-                    .argument       = ramIndex*8
+                    .argument       = ramIndex*8,
+                    .x86size        = SIZE_MOV_RNUM_RNUM + SIZE_ADD_REG_REG + 
+                                        SIZE_POP_R15_OFFSET + SIZE_REL_PTR + SIZE_MOV_RNUM_RNUM
                 };
             }
             else 
             {
                 MY_ASSERT (1, "Wrong command");
             }
-            x86ip += SIZE_MOV_RNUM_RNUM + SIZE_ADD_REG_REG + SIZE_POP_R15_OFFSET + SIZE_REL_PTR + SIZE_MOV_RNUM_RNUM;
         }
         else
 
@@ -373,8 +372,6 @@ void fillIRArray (compilerInfo_t * compilerInfo)
 
     return ;
 }
-
-
 
 static int checkBit(const int value, const int position) 
 {
