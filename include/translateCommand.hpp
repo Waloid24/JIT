@@ -26,6 +26,8 @@ enum X86_CMD : u_int64_t {
     MOV_RBP_RSP = 0xe48949,
     MOV_RSP_RBP = 0xe4894c,
     MOV_REG_RNUM = 0xc0894c,          // need to "|" with shifted left by 16 reg mask, second - by 19
+    
+    MOV_MEM_R14_RAX = 0x068949,       // mov qword [r14], rax
 
     //mov r_x, [r15 + offset]
     MOV_REG_R15_OFFSET = 0x498b87,    // need to "|" with shited left by 19 reg mask
@@ -40,6 +42,7 @@ enum X86_CMD : u_int64_t {
     PUSH_R15_OFFSET = 0xb7ff41,       // must be followed by 32bit offset
 
     PUSHA1 = 0x544155415641,
+    PUSH_MEM_R14 = 0x36ff41,            //push [r14]
     PUSHA2 = 0x5741534153,
     POPA1  = 0x5f415e415d415c41,
     POPA2  = 0x5b5b41,
@@ -53,6 +56,8 @@ enum X86_CMD : u_int64_t {
     ADD_REG_REG = 0xc00148,            // first reg - "|" with shifted by 19 REG_MASK, second reg - "|" with shifted by 16 REG_MASK
     ADD_RNUM_REG = 0xc00149,
     ADD_RNUM_RNUM = 0xc0014d,
+    ADD_R14_8 = 0x08c68349,             // for callStack
+    SUB_R14_8 = 0x08ee8349,
 
     SUB_REG_REG = 0xc02948,            // same
 
@@ -125,11 +130,13 @@ enum x86_Commands_Size {
     SIZE_MOV_RNUM_REG = 3,      //ok
     SIZE_MOV_RNUM_RNUM = 3,     //ok
     SIZE_MOV_RBP_RSP = 3,       //ok   
+    SIZE_MOV_MEM_R14_RAX = 3,   //ok
     SIZE_MOV_RSP_RBP = 3,       //ok
     SIZE_MOV_REG_RNUM = 3,      //ok
     SIZE_MOV_REG_R15_OFFSET = 3,//ok
     SIZE_MOV_R15_OFFSET_REG = 3,//ok
     SIZE_PUSH_REG = 1,          //ok
+    SIZE_PUSH_MEM_R14 = 3,
     SIZE_PUSHA1 = 6,
     SIZE_PUSHA2 = 5,
     SIZE_POPA1 = 8,
@@ -139,10 +146,12 @@ enum x86_Commands_Size {
     SIZE_POP_REG = 1,           //ok
     SIZE_POP_RNUM = 2,          //okFAN
     SIZE_POP_R15_OFFSET = 3,    //ok
+    SIZE_ADD_R14_8 = 4,         //ok
     SIZE_ADD_REG_REG = 3,       //ok
     SIZE_ADD_RNUM_REG = 3,      //ok
     SIZE_ADD_RNUM_RNUM = 3,     //ok
     SIZE_SUB_REG_REG = 3,       //ok
+    SIZE_SUB_R14_8 = 4,
     SIZE_IMUL_REG_REG = 4,      
     SIZE_CQO = 2,
     SIZE_IDIV_REG = 3,
@@ -161,6 +170,7 @@ enum x86_Commands_Size {
     SIZE_CMP_REG_REG = 3,
     SIZE_NUM = 8,
     SIZE_REL_PTR = 4,
+    SIZE_ABS_PTR = 8,
     SIZE_SYSCALL = 2,
     SIZE_XOR_RDI_RDI = 3,
     SIZE_ALIGN_STACK = 4,

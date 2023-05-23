@@ -52,83 +52,34 @@ void graphvizDumpIR (compilerInfo_t compilerInfo)
             }
             else if (isJump(compilerInfo.irInfo.irArray[i]) || compilerInfo.irInfo.irArray[i].cmd == CMD_CALL) 
             {
-                // if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                // {
-                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"cyan\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
-                // }
-                // else
-                // {
-                //     dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"cyan\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].argument, name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
-                // }
+                dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"cyan\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
             }
             else if (isPushPop(compilerInfo.irInfo.irArray[i].cmd)) 
             {
                 if (compilerInfo.irInfo.irArray[i].argument_type == NUMBER)
                 {
-                    if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"orange\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
-                    }
-                    else
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
-                    }
+                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
                 }
                 else if (compilerInfo.irInfo.irArray[i].argument_type == MEM_NUM)
                 {
-                    if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument [MEM]: %ld\", style = \"filled\", fillcolor = \"orange\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
-                    }
-                    else 
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument [MEM]: %ld\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
-                    }
+                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument [MEM]: %ld\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
                 }
                 else if (compilerInfo.irInfo.irArray[i].argument_type == MEM_REG)
                 {
-                    if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<reg_arg> reg [MEM]: %d\", style = \"filled\", fillcolor = \"orange\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].reg_type);
-                    }
-                    else
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<reg_arg> reg [MEM]: %d\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].reg_type);
-                    }
+                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<reg_arg> reg [MEM]: %d\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].reg_type);
                 }
 
                 else if (compilerInfo.irInfo.irArray[i].argument_type == REGISTER)
                 {
-                    if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"orange\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].reg_type);
-                    }
-                    else 
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].reg_type);
-                    }
+                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].reg_type);
                 }
                 else if (compilerInfo.irInfo.irArray[i].argument_type == NUM_REG)
                 {
-                    if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"orange\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
-                    }
-                    else
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"green \" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
-                    }
+                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"green \" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
                 }
                 else if (compilerInfo.irInfo.irArray[i].argument_type == MEM_NUM_REG)
                 {
-                    if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument [MEM]: %ld|<reg_arg> reg [MEM]: %d\", style = \"filled\", fillcolor = \"orange\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
-                    }
-                    else
-                    {
-                        dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument [MEM]: %ld|<reg_arg> reg [MEM]: %d\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
-                    }
+                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument [MEM]: %ld|<reg_arg> reg [MEM]: %d\", style = \"filled\", fillcolor = \"green\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
                 }
                 else 
                 {
@@ -137,25 +88,11 @@ void graphvizDumpIR (compilerInfo_t compilerInfo)
             }
             else if (compilerInfo.irInfo.irArray[i].cmd == CMD_MOV)
             {
-                if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                {
-                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"darkgoldenrod1\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
-                }
-                else
-                {
-                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"yellow\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
-                }
+                dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld|<reg_arg> reg: %d\", style = \"filled\", fillcolor = \"yellow\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument, compilerInfo.irInfo.irArray[i].reg_type);
             }
             else 
             {
-                if (compilerInfo.irInfo.irArray[i].isPurposeOfCall)
-                {
-                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"bisque4\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
-                }
-                else
-                {
-                    dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"gray\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
-                }
+                dumpline("struct%zu [\nlabel = \"<index> index: %zu|<ip>ip: %zu|<x86ip>x86ip: %zu (%lx)|<name>name: %s|<size> size(native): %d|<arg> argument: %ld\", style = \"filled\", fillcolor = \"gray\" \n];\n", i, i, compilerInfo.irInfo.irArray[i].nativeIP, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].x86ip, compilerInfo.irInfo.irArray[i].name, compilerInfo.irInfo.irArray[i].nativeSize, compilerInfo.irInfo.irArray[i].argument);
             }
             if (i == 0)
             {

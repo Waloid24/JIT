@@ -90,9 +90,7 @@ void JITCompile (compilerInfo_t * compilerInfo)
     EMIT (compilerInfo, mov_r15_mem_buf, MOV_RNUM_IMMED, R15, 8)
     x86insertAbsPtr (compilerInfo, (u_int64_t) compilerInfo->x86_memory_buf);
 
-    EMIT_MATH_OPERS (compilerInfo, mov_r14_rsp, MOV_RNUM_REG, R14, 16, RSP, 19)
-
-    EMIT (compilerInfo, mov_rsp_stackBuf, MOV_REG_IMMED, RSP, 8)
+    EMIT (compilerInfo, mov_rsp_stackBuf, MOV_RNUM_IMMED, R14, 8)
     x86insertAbsPtr (compilerInfo, (u_int64_t) compilerInfo->x86StackBuf);
 
     size_t irIndex = 0;
@@ -100,11 +98,6 @@ void JITCompile (compilerInfo_t * compilerInfo)
 
     for (; irIndex < sizeArr; irIndex++, machineIndex++)
     {
-        if (irArr[irIndex].isPurposeOfCall)
-        {
-            EMIT_MATH_OPERS (compilerInfo, mov_r14_rsp, MOV_RNUM_REG, R14, 16, RSP, 19)
-            EMIT_MATH_OPERS (compilerInfo, mov_rsp_r13, MOV_REG_RNUM, RSP, 16, R13, 19)
-        }
         switch (irArr[irIndex].cmd)
         {
             case CMD_PUSH:
@@ -187,31 +180,25 @@ static void x86TranslateOut (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     dumpx86Func (compilerInfo, "Translate [OUT]")
 
-    size_t addrToContinue = irCommand.x86ip + SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_RNUM_REG +
-        SIZE_MOV_REG_RNUM + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + sizeof (int32_t);
+    size_t addrToContinue = irCommand.x86ip + SIZE_CVTSI2SD_XMM0_RAX + SIZE_PUSHA2 + SIZE_PUSHA1 + 
+             SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + SIZE_REL_PTR;
 
     int32_t relAddrPrintf = (u_int64_t)myPrintf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
-    EMIT (compilerInfo, push_rax, POP_REG, RAX, 0)
-    EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
-
-    EMIT_MATH_OPERS (compilerInfo, mov_r13_rsp, MOV_RNUM_REG, R13, 16, RSP, 19)
-    EMIT_MATH_OPERS (compilerInfo, mov_rsp_r14, MOV_REG_RNUM, RSP, 16, R14, 19)
-
-    EMIT (compilerInfo, pusha1, PUSHA2, 0, 0)
-    EMIT (compilerInfo, pusha2, PUSHA1, 0, 0)
-    EMIT_MATH_OPERS (compilerInfo, mov_rbp_rsp, MOV_REG_REG, RBP, 16, RSP, 19)
+    EMIT (compilerInfo, cvtsi_xmm0_rsp, CVTSI2SD_XMM0_RSP, 0, 0)
+    EMIT (compilerInfo, pusha2, PUSHA2, 0, 0)
+    EMIT (compilerInfo, pusha1, PUSHA1, 0, 0)
+    EMIT (compilerInfo, mov_rbp_rsp, MOV_RBP_RSP, 0, 0)
     EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)
 
     EMIT (compilerInfo, call, x86_CALL, 0, 0)
     x86insertRelPtr (compilerInfo, relAddrPrintf)
 
-    EMIT_MATH_OPERS (compilerInfo, mov_rsp_rbp, MOV_REG_REG, RSP, 16, RBP, 19)
+    EMIT (compilerInfo, mov_rsp_rbp, MOV_RSP_RBP, 0, 0)
     EMIT (compilerInfo, popa1, POPA1, 0, 0)
     EMIT (compilerInfo, popa2, POPA2, 0, 0)
+    EMIT (compilerInfo, add_rsp_8, ADD_RSP_8, 0, 0)
 
-    EMIT_MATH_OPERS (compilerInfo, mov_r14_rsp, MOV_RNUM_REG, R14, 16, RSP, 19)
-    EMIT_MATH_OPERS (compilerInfo, mov_rsp_r13, MOV_REG_RNUM, RSP, 16, R13, 19)
 }
 
 static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -220,38 +207,28 @@ static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     dumpx86Func (compilerInfo, "Translate [IN]")
 
-    // size_t addrToContinue = irCommand.x86ip + SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_MOV_RNUM_REG +
-    //     + SIZE_MOV_REG_RNUM + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + sizeof(int32_t);
+    size_t addrToContinue = irCommand.x86ip + SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP +
+                            SIZE_ALIGN_STACK + SIZE_x86_CALL + SIZE_REL_PTR;
 
-    size_t addrToContinue = irCommand.x86ip + SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_PUSHA1 + SIZE_PUSHA2 + 
-            SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + sizeof(int32_t);
-        
-    int32_t relAddrScanf = (u_int64_t)myScanf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
+    int32_t relAddr = (u_int64_t)myScanf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
-    EMIT (compilerInfo, sub_rsp_8, SUB_RSP_8, 0, 0) // reserving space for input
+    EMIT (compilerInfo, sub_rsp_8, SUB_RSP_8, 0, 0)
     EMIT_MATH_OPERS (compilerInfo, mov_rdi_rsp, MOV_REG_REG, RDI, 16, RSP, 19)
-
-    // EMIT_MATH_OPERS (compilerInfo, mov_r13_rsp, MOV_RNUM_REG, R13, 16, RSP, 19)
-    // EMIT_MATH_OPERS (compilerInfo, mov_rsp_r14, MOV_REG_RNUM, RSP, 16, R14, 19)
-
-    EMIT (compilerInfo, pusha1, PUSHA2, 0, 0)
-    EMIT (compilerInfo, pusha2, PUSHA1, 0, 0)
+    EMIT (compilerInfo, pusha2, PUSHA2, 0, 0)
+    EMIT (compilerInfo, pusha1, PUSHA1, 0, 0)
     EMIT (compilerInfo, mov_rbp_rsp, MOV_RBP_RSP, 0, 0)
-    EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)    
+    EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)
 
     EMIT (compilerInfo, call, x86_CALL, 0, 0)
-    x86insertRelPtr (compilerInfo, relAddrScanf)
+    x86insertRelPtr (compilerInfo, relAddr);
 
-    EMIT (compilerInfo, mov_rsp_rbp, MOV_RSP_RBP, 0, 0)
+    EMIT (compilerInfo, mov_rsp_rpb, MOV_RSP_RBP, 0, 0)
     EMIT (compilerInfo, popa1, POPA1, 0, 0)
     EMIT (compilerInfo, popa2, POPA2, 0, 0)
-
-    // EMIT_MATH_OPERS (compilerInfo, mov_r14_rsp, MOV_RNUM_REG, R14, 16, RSP, 19)
-    // EMIT_MATH_OPERS (compilerInfo, mov_rsp_r13, MOV_REG_RNUM, RSP, 16, R13, 19)
 }
 
 static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
-{   
+{
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
     switch (irCommand.argument_type)
@@ -350,10 +327,13 @@ static void x86TranslateCondJmps (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
+    size_t addrToContinue = irCommand.x86ip + SIZE_x86_COND_JMP + SIZE_REL_PTR + 
+                            SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG;
+
     EMIT (compilerInfo, pop_rax, POP_REG, RAX, 0)
     EMIT (compilerInfo, pop_rbx, POP_REG, RDX, 0)
 
-    EMIT_MATH_OPERS (compilerInfo, cmp_rax_rbx, CMP_REG_REG, RDX, 19, RAX, 16)
+    EMIT_MATH_OPERS (compilerInfo, cmp_rax_rbx, CMP_REG_REG, RDX, 16, RAX, 19)
 
     opcode_t typeJmp = {
         .size = SIZE_x86_COND_JMP,
@@ -402,9 +382,9 @@ static void x86TranslateCondJmps (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     x86insertCmd (compilerInfo, typeJmp);
 
-    int32_t relCmd = irCommand.argument - (irCommand.x86ip + 1 + sizeof(int));
+    int32_t relPtr = irCommand.argument - addrToContinue;
 
-    x86insertRelPtr (compilerInfo, relCmd);
+    x86insertRelPtr (compilerInfo, relPtr);
 }
 
 static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -416,23 +396,30 @@ static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
         case CMD_JMP:
         {
             EMIT (compilerInfo, cmd_jmp, x86_JMP, 0, 0)
-            int32_t relPtr = irCommand.argument - (irCommand.x86ip + SIZE_x86_JMP + sizeof (int));
+            int32_t relPtr = irCommand.argument - (irCommand.x86ip + SIZE_x86_JMP + SIZE_REL_PTR);
             x86insertRelPtr (compilerInfo, relPtr);
             break;
         }
 
         case CMD_CALL:
         {
-            EMIT_MATH_OPERS (compilerInfo, mov_r13_rsp, MOV_RNUM_REG, R13, 16, RSP, 19)
-            EMIT_MATH_OPERS (compilerInfo, mov_rsp_r14, MOV_REG_RNUM, RSP, 16, R14, 19)
-            EMIT            (compilerInfo, cmd_call, x86_CALL, 0, 0)
-            int32_t relPtr = irCommand.argument - (irCommand.x86ip + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM + SIZE_x86_CALL + sizeof (int));
-            x86insertRelPtr (compilerInfo, relPtr);
-            EMIT_MATH_OPERS (compilerInfo, mov_r14_rsp, MOV_RNUM_REG, R14, 16, RSP, 19)
+            size_t addrToContinue = irCommand.x86ip + SIZE_MOV_REG_IMMED + SIZE_ABS_PTR + 
+                    SIZE_MOV_MEM_R14_RAX + SIZE_ADD_R14_8 + SIZE_x86_JMP + SIZE_REL_PTR;
+
+            int32_t relPtr = irCommand.argument - addrToContinue;
+            u_int64_t absAddr = (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
+
+            EMIT (compilerInfo, mov_rax_absAddr, MOV_REG_IMMED, RAX, 8)
+            x86insertAbsPtr (compilerInfo, absAddr);
+            EMIT (compilerInfo, mov_mem_r14_rax, MOV_MEM_R14_RAX, 0, 0)
+            EMIT (compilerInfo, add_r14_8, ADD_R14_8, 0, 0)
+            EMIT (compilerInfo, jump, x86_JMP, 0, 0)
+            x86insertRelPtr(compilerInfo, relPtr);
+
             break;
         }  
 
-        default:
+        default:        
             MY_ASSERT (1, "Incorrect jmp or call")
             break;
     }
@@ -453,6 +440,7 @@ static void x86TranslateSqrt (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     EMIT_MATH_OPERS (compilerInfo, divpd_xmm0_xmm1, DIVPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
     EMIT (compilerInfo, sqrt, SQRTPD_XMM0_XMM0, 0, 0)
+    EMIT_MATH_OPERS (compilerInfo, mulpd_xmm0_xmm1, MULPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
 
     EMIT (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
     EMIT (compilerInfo, push, PUSH_REG, RAX, 0)
@@ -465,7 +453,7 @@ static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
     EMIT (compilerInfo, pop_rax, POP_REG, RAX, 0)
     EMIT (compilerInfo, pop_rbx, POP_REG, RDX, 0)
 
-    EMIT_MATH_OPERS (compilerInfo, cmp_rax_rbx, CMP_REG_REG, RDX, 19, RAX, 16)
+    EMIT_MATH_OPERS (compilerInfo, cmp_rax_rbx, CMP_REG_REG, RDX, 16, RAX, 19)
 
     opcode_t bool_expr = {
         .size = SIZE_x86_COND_JMP,
@@ -514,19 +502,23 @@ static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     x86insertCmd (compilerInfo, bool_expr);                                 // 
                                                                             // -> j? .equal
-    x86insertRelPtr (compilerInfo, SIZE_MOV_REG_IMMED+SIZE_NUM+SIZE_PUSH_REG+  //
-                                SIZE_x86_JMP+SIZE_REL_PTR);                 //
+    int32_t relAddr = SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP +
+                    SIZE_REL_PTR;
+    x86insertRelPtr (compilerInfo, relAddr);                 //
 
     EMIT (compilerInfo, mov_rax_0, MOV_REG_IMMED, RAX, 8)   //
     x86insertNum (compilerInfo, 0);                         // -> push 0
     EMIT (compilerInfo, push_rax, PUSH_REG, RAX, 0)         //
 
     EMIT (compilerInfo, jmp_end, x86_JMP, 0, 0)             //jmp .after_equal
-    x86insertRelPtr (compilerInfo, SIZE_MOV_REG_IMMED+SIZE_NUM+SIZE_PUSH_REG);
+    int32_t relAddrEnd = SIZE_MOV_REG_IMMED+SIZE_NUM+SIZE_PUSH_REG;
+    x86insertRelPtr (compilerInfo, relAddrEnd);
 
+    //.equal
     EMIT (compilerInfo, mov_rax_1, MOV_REG_IMMED, RAX, 8)   //
     x86insertNum (compilerInfo, 1);                         // -> push 1
-    EMIT (compilerInfo, push_rax1, PUSH_REG, RAX, 0)         //
+    EMIT (compilerInfo, push_rax1, PUSH_REG, RAX, 0)        //
+    //.after_equal
 
 }
 
@@ -540,8 +532,8 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
         {
             EMIT (compilerInfo, pop_reg1, POP_REG, RAX, 0)
             EMIT (compilerInfo, pop_reg2, POP_REG, RDX, 0)
-            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, ADD_REG_REG, RAX, 16, RDX, 19)
-            EMIT (compilerInfo, push_reg1, PUSH_REG, RAX, 0)
+            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, ADD_REG_REG, RDX, 16, RAX, 19)
+            EMIT (compilerInfo, push_reg1, PUSH_REG, RDX, 0)
             break;
         }
             
@@ -550,8 +542,8 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
         {
             EMIT (compilerInfo, pop_reg1, POP_REG, RAX, 0)
             EMIT (compilerInfo, pop_reg2, POP_REG, RDX, 0)
-            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, SUB_REG_REG, RAX, 16, RDX, 19)
-            EMIT (compilerInfo, push_reg1, PUSH_REG, RAX, 0)
+            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, SUB_REG_REG, RDX, 16, RAX, 19)
+            EMIT (compilerInfo, push_reg1, PUSH_REG, RDX, 0)
             break;
         }
             
@@ -700,7 +692,6 @@ static void x86TranslateHlt (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
-    EMIT_MATH_OPERS (compilerInfo, mov_rsp_r14, MOV_REG_RNUM, RSP, 16, R14, 19)
     EMIT (compilerInfo, ret_main, x86_RET, 0, 0)
 }
 
@@ -708,8 +699,8 @@ static void x86TranslateRet (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
     
-    EMIT_MATH_OPERS (compilerInfo, mov_r13_rsp, MOV_RNUM_REG, R13, 16, RSP, 19)
-    EMIT_MATH_OPERS (compilerInfo, mov_rsp_r14, MOV_REG_RNUM, RSP, 16, R14, 19)
+    EMIT (compilerInfo, sub_r14_8, SUB_R14_8, 0, 0)
+    EMIT (compilerInfo, push_mem_r14, PUSH_MEM_R14, 0, 0)
     EMIT (compilerInfo, ret, x86_RET, 0, 0)
 }
 

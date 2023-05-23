@@ -18,7 +18,7 @@ src: | $(OBJDIR) $(DESTDIR) $(LOGDIR) $(GRAPHDIR)
 
 .PHONY: run
 run:
-	./bin/main asmResult.bin
+	./bin/main $(filter-out $@,$(MAKECMDGOALS))
 
 clean:
 	rm -r $(DESTDIR) $(OBJDIR) $(LOGDIR) $(GRAPHDIR)

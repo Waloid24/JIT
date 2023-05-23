@@ -15,7 +15,7 @@ DEF_CMD (ADD,  3,  NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
-    x86ip += SIZE_ADD_REG_REG;
+    x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_ADD_REG_REG + SIZE_PUSH_REG;
 })
 DEF_CMD (SUB,  4,  NO,
 {
@@ -26,7 +26,7 @@ DEF_CMD (SUB,  4,  NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
-    x86ip += SIZE_SUB_REG_REG;
+    x86ip += SIZE_POP_REG + SIZE_POP_REG + SIZE_SUB_REG_REG + SIZE_PUSH_REG;
 })
 DEF_CMD (MUL,  5,  NO,
 {
@@ -67,9 +67,8 @@ DEF_CMD (OUT,  7,  NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
-    x86ip += SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM +
-            SIZE_PUSHA2 + SIZE_PUSHA1 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + SIZE_REL_PTR +
-            SIZE_MOV_REG_REG + SIZE_POPA1 + SIZE_POPA2 + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
+    x86ip += SIZE_CVTSI2SD_XMM0_RAX + SIZE_PUSHA2 + SIZE_PUSHA1 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL +
+             SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POPA1 + SIZE_POPA2 + SIZE_ADD_RSP_8;
 })
 DEF_CMD (IN,   8,  NO,
 {
@@ -80,10 +79,6 @@ DEF_CMD (IN,   8,  NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
-    // x86ip += SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM +
-    //          SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + 
-    //         SIZE_x86_CALL + SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POPA1 + SIZE_POPA2 +
-    //         SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
     x86ip += SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + 
             SIZE_x86_CALL + SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POPA1 + SIZE_POPA2;
 })
@@ -114,7 +109,7 @@ DEF_CMD (CALL, 10, YES,
         .argument_type  = LABEL,
         .argument       = compilerInfo->byteCode.buf[i]
     };
-    x86ip += SIZE_x86_CALL + SIZE_REL_PTR + SIZE_MOV_RNUM_REG + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
+    x86ip += SIZE_MOV_REG_IMMED + SIZE_ABS_PTR + SIZE_MOV_MEM_R14_RAX + SIZE_ADD_R14_8 + SIZE_x86_JMP + SIZE_REL_PTR;
 })
 DEF_CMD (RET,  11, NO,
 {
@@ -126,7 +121,7 @@ DEF_CMD (RET,  11, NO,
         .nativeIP       = i,
         .x86ip          = x86ip
     };
-    x86ip += SIZE_x86_RET + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
+    x86ip += SIZE_SUB_R14_8 + SIZE_PUSH_MEM_R14 + SIZE_x86_RET;
 })
 DEF_CMD (JA,   12, YES,
 {
@@ -180,7 +175,7 @@ DEF_CMD (SQRT, 19, NO,
     };
     x86ip += SIZE_POP_REG + SIZE_CVTSI2SD_XMM0_RAX + SIZE_MOV_REG_IMMED +
     SIZE_NUM + SIZE_CVTSI2SD_XMM0_RAX + SIZE_DIVPD_XMM0_XMM0 + 
-    SIZE_SQRTPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 + SIZE_PUSH_REG;
+    SIZE_SQRTPD_XMM0_XMM0 + SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI_RAX_XMM0 + SIZE_PUSH_REG;
 })
 DEF_CMD (MEOW, 20, NO,
 {

@@ -38,7 +38,6 @@ struct ir_struct {
     argument_t  argument_type;
     char        reg_type;
     int64_t     argument;
-    bool isPurposeOfCall;
     struct ir_struct * ptrToCell;
 };
 

@@ -103,12 +103,10 @@ void fillJmpsCalls (compilerInfo_t * compilerInfo)
     {
         if (isJump (compilerInfo->irInfo.irArray[i]) || compilerInfo->irInfo.irArray[i].cmd == CMD_CALL)
         {
-            // compilerInfo->irInfo.irArray[i].argument = findJmpx86Ip (compilerInfo, &(compilerInfo->irInfo.irArray[i]));
             compilerInfo->irInfo.irArray[i].argument = findJmpx86Ip (compilerInfo, &(compilerInfo->irInfo.irArray[i]));
             // graphvizDumpIR (*compilerInfo);
         }
     }
-    fillCallJumpArg (compilerInfo);
 }
 
 static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, ir_t * irCommand)
@@ -119,38 +117,16 @@ static int64_t findJmpx86Ip (compilerInfo_t * compilerInfo, ir_t * irCommand)
     {
         if (compilerInfo->irInfo.irArray[i].nativeIP == irCommand->argument)
         {
-            if (irCommand->cmd == CMD_CALL)
-            {
-                compilerInfo->irInfo.irArray[i].isPurposeOfCall = true;
-
-                for (size_t j = i+1; j < compilerInfo->irInfo.sizeArray; j++)
-                {
-                    compilerInfo->irInfo.irArray[j].x86ip += SIZE_MOV_RNUM_REG + SIZE_MOV_REG_RNUM;
-                }
-            }
-            irCommand->ptrToCell = &(compilerInfo->irInfo.irArray[i]);
+            printf ("compilerInfo->irInfo.irArray[i].nativeIP = %zu\n"
+                    "irCommand->argument = %ld\n"
+                    "compilerInfo->irInfo.irArray[i].x86ip = %zu\n\n", compilerInfo->irInfo.irArray[i].nativeIP, irCommand->argument,
+                                                                       compilerInfo->irInfo.irArray[i].x86ip);
 
             return compilerInfo->irInfo.irArray[i].x86ip;
         }
     }
 
     return NOT_PTR;
-}
-
-static void fillCallJumpArg (compilerInfo_t * compilerInfo)
-{
-    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure")
-
-    for (size_t i = 0; i < compilerInfo->irInfo.sizeArray; i++)
-    {
-        if (isJump(compilerInfo->irInfo.irArray[i]) || compilerInfo->irInfo.irArray[i].cmd == CMD_CALL)
-        {
-            if (compilerInfo->irInfo.irArray[i].argument != NOT_PTR)
-            {
-                compilerInfo->irInfo.irArray[i].argument = compilerInfo->irInfo.irArray[i].ptrToCell->x86ip;
-            }
-        }
-    }
 }
 
 void fillIRArray (compilerInfo_t * compilerInfo)
@@ -163,7 +139,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
     size_t numCmds  = 0;
     size_t x86ip    = 0;
 
-    x86ip += SIZE_MOV_RNUM_IMMED + sizeof(u_int64_t) + SIZE_MOV_RNUM_REG + SIZE_MOV_REG_IMMED + sizeof (u_int64_t);
+    x86ip += SIZE_MOV_RNUM_IMMED + sizeof(u_int64_t) + SIZE_MOV_RNUM_IMMED + sizeof (u_int64_t);
 
     #define DEF_CMD(nameCmd, numCmd, isArg, ...)            \
     if (cmd == CMD_##nameCmd)                               \
@@ -174,10 +150,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
     {
         cmd = (compilerInfo->byteCode.buf[i] & MASK);
 
-        // if (cmd == CMD_HLT)
-        // {
-        //     printf ("\033[101m HLT!  \033[0m \n");
-        // }
+        printf ("cmd = %d, x86ip = %lx\n", cmd, x86ip);
 
         if ( (checkBit(compilerInfo->byteCode.buf[i], NUM) == 1) && 
              (checkBit(compilerInfo->byteCode.buf[i], REG) == 0) && 
@@ -361,7 +334,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .x86ip          = x86ip,
                     .argument_type  = MEM_NUM_REG,
                     .reg_type       = nReg,
-                    .argument       = ramIndex
+                    .argument       = ramIndex*8
                 };
             }
             else if (cmd == CMD_POP)
@@ -374,7 +347,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .x86ip          = x86ip,
                     .argument_type  = MEM_NUM_REG,
                     .reg_type       = nReg,
-                    .argument       = ramIndex
+                    .argument       = ramIndex*8
                 };
             }
             else 

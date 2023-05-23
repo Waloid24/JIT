@@ -13,13 +13,13 @@ void dumpx86MachineCode (compilerInfo_t compilerInfo);
 
 int main (int argc, char * argv[])
 {
-    // MY_ASSERT (argc != 2, "You should enter 2 arguments: executable file and bytecode file");
+    MY_ASSERT (argc != 2, "You should enter 2 arguments: executable file and bytecode file");
 
     compilerInfo_t compilerInfo = {};
 
-    compilerInfo.byteCode = readCode ("scanf.bin");
+    compilerInfo.byteCode = readCode (argv[1]);
 
-    // dumpCode        (&compilerInfo);
+    dumpCode        (&compilerInfo);
 
     createIRArray   (&compilerInfo);
 
