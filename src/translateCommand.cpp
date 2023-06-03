@@ -11,70 +11,176 @@ static void x86TranslateOut         (compilerInfo_t * compilerInfo, ir_t irComma
 static void x86TranslateRet         (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateHlt         (compilerInfo_t * compilerInfo, ir_t irCommand);
 static void x86TranslateCondJmps    (compilerInfo_t * compilerInfo, ir_t irCommand);
-static void insertAbsPtr            (compilerInfo_t * compilerInfo, u_int64_t ptr);
-static void insertNum               (compilerInfo_t * compilerInfo, int64_t number);
+
+static void insert8ByteSignNum      (compilerInfo_t * compilerInfo, int64_t number);
+static void insert8ByteUnsignNum    (compilerInfo_t * compilerInfo, u_int64_t ptr);
+static void insert4ByteSignNum      (compilerInfo_t * compilerInfo, int32_t ptr);
+static void insert4ByteUnsignNum    (compilerInfo_t * compilerInfo, u_int32_t ptr);
+
 static void insertCmd               (compilerInfo_t * compilerInfo, opcode_t cmd);
-static void insertRelPtr            (compilerInfo_t * compilerInfo, int32_t ptr);
 static void myPrintf                (double num);
 static void myScanf                 (int * num);
 
-static void dumpCmd     (compilerInfo_t * compilerInfo, opcode_t cmdCode, const char * name, size_t lineSrcFile, const char * nameCallingFunc);
-static void dumpNum     (compilerInfo_t * compilerInfo, int64_t number, size_t lineSrcFile, const char * nameCallingFunc);
-static void dumpAbsPtr  (compilerInfo_t * compilerInfo, u_int64_t number, size_t lineSrcFile, const char * nameCallingFunc);
-static void dumpRelPtr  (compilerInfo_t * compilerInfo, u_int32_t number, size_t lineSrcFile, const char * nameCallingFunc);
-static void dumpFunc    (compilerInfo_t * compilerInfo, const char * message, size_t lineSrcFile, const char * nameCallingFunc);
+static void dumpCmd                 (compilerInfo_t * compilerInfo, opcode_t cmdCode, const char * name, size_t lineSrcFile, const char * nameCallingFunc);
+static void dumpNum                 (compilerInfo_t * compilerInfo, int64_t number, size_t lineSrcFile, const char * nameCallingFunc);
+static void dumpAbsPtr              (compilerInfo_t * compilerInfo, u_int64_t number, size_t lineSrcFile, const char * nameCallingFunc);
+static void dumpRelPtr              (compilerInfo_t * compilerInfo, u_int32_t number, size_t lineSrcFile, const char * nameCallingFunc);
+static void dumpFunc                (compilerInfo_t * compilerInfo, const char * message, size_t lineSrcFile, const char * nameCallingFunc);
 
+const int64_t BAD_NUMBER            = 123456;
+const u_int32_t NUMBER_OF_FUNCTION  = 100;
 
-const int64_t BAD_NUMBER = 123456;
-const u_int32_t NUMBER_OF_FUNCTION = 100;
-
-#define dumpx86Func(compilerInfo, message)                             \
+#define x86dumpFunc(compilerInfo, message)                                              \
     dumpFunc (compilerInfo, message, __LINE__, __PRETTY_FUNCTION__);
 
-#define dumpx86Cmd(compilerInfo, cmdOpcode, nameCmd)                                     \
+#define x86dumpCmd(compilerInfo, cmdOpcode, nameCmd)                                    \
     dumpCmd (compilerInfo, cmdOpcode, #nameCmd, __LINE__, __PRETTY_FUNCTION__);  
 
-#define dumpx86Num(compilerInfo, number)                                        \
+#define x86dumpNum(compilerInfo, number)                                                \
     dumpNum (compilerInfo, number, __LINE__, __PRETTY_FUNCTION__);  
 
-#define dumpx86AbsPtr(compilerInfo, pointer)                                    \
+#define x86dumpAbsPtr(compilerInfo, pointer)                                            \
     dumpAbsPtr (compilerInfo, pointer, __LINE__, __PRETTY_FUNCTION__);  
 
-#define dumpx86RelPtr(compilerInfo, pointer)                                        \
+#define x86dumpRelPtr(compilerInfo, pointer)                                            \
     dumpRelPtr (compilerInfo, pointer, __LINE__, __PRETTY_FUNCTION__);  
 
-#define x86insertCmd(compilerInfo, cmd)         \
-    insertCmd (compilerInfo, cmd);              \
-    dumpx86Cmd (compilerInfo, cmd, #cmd)
+#define x86insertCmd(compilerInfo, cmd)                                                 \
+    insertCmd (compilerInfo, cmd);                                                      \
+    x86dumpCmd (compilerInfo, cmd, #cmd)
 
-#define x86insertNum(compilerInfo, num)         \
-    insertNum (compilerInfo, num);              \
-    dumpx86Num (compilerInfo, num)
+#define x86insert8ByteSignNum(compilerInfo, num)                                        \
+    insert8ByteSignNum (compilerInfo, num);                                             \
+    x86dumpAbsPtr (compilerInfo, num)
 
-#define x86insertRelPtr(compilerInfo, ptr)      \
-    insertRelPtr (compilerInfo, ptr);           \
-    dumpx86RelPtr (compilerInfo, ptr)
+#define x86insert8ByteUnsignNum(compilerInfo, num)                                      \
+    insert8ByteUnsignNum (compilerInfo, num);                                           \
+    x86dumpAbsPtr (compilerInfo, num)
 
-#define x86insertAbsPtr(compilerInfo, ptr)      \
-    insertAbsPtr (compilerInfo, ptr);           \
-    dumpx86AbsPtr (compilerInfo, ptr)
+#define x86insert4ByteSignNum(compilerInfo, num)                                        \
+    insert4ByteSignNum (compilerInfo, num);                                             \
+    x86dumpRelPtr (compilerInfo, num)
 
-#define logDumpline(message, ...)                       \
+#define x86insert4ByteUnsignNum(compilerInfo, num)                                      \
+    insert4ByteUnsignNum (compilerInfo, num);                                           \
+    x86dumpRelPtr (compilerInfo, num)
+
+#define logDumpline(message, ...)                                                       \
     fprintf (logfile, message, ##__VA_ARGS__);
 
-#define EMIT(compilerInfo, name, cmd, reg, offset)      \
-    opcode_t name = {                                   \
-        .size = SIZE_##cmd,                             \
-        .code = cmd | (((u_int64_t) reg) << offset)     \
-    };                                                  \
-    x86insertCmd (compilerInfo, name)
+//===========================New format with getOffsetCmd function=====================
 
-#define EMIT_MATH_OPERS(compilerInfo, name, cmd, reg1, offset1, reg2, offset2)              \
-    opcode_t name = {                                                                       \
-        .size = SIZE_##cmd,                                                                 \
-        .code = cmd | (((u_int64_t) reg1) << offset1) | (((u_int64_t) reg2) << offset2)     \
-    };                                                                                      \
-    x86insertCmd (compilerInfo, name)
+static u_int64_t getOffsetCmd ( u_int64_t cmd, u_int64_t reg, u_int64_t offset)
+{
+    return cmd | (reg << offset);
+}
+
+static void emitCmd (compilerInfo_t * compilerInfo, u_int64_t cmd, u_int64_t cmd_size)
+{
+    opcode_t code = {.size = cmd_size, .code = cmd};
+    insertCmd (compilerInfo, code);
+    x86dumpCmd (compilerInfo, code, cmd)
+}
+
+#define EMIT_CVTSD2SI_REG(reg1, reg2)      \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (CVTSD2SI_REG, reg1, 35), reg2, 32), SIZE_CVTSD2SI);
+
+#define EMIT_CVTSI2SD_REG(reg1, reg2)      \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (CVTSI2SD_REG, reg1, 35), reg2, 32), SIZE_CVTSI2SD);
+
+#define EMIT_PUSH_REG(reg)              \
+    emitCmd (compilerInfo, getOffsetCmd (PUSH_REG, reg, 0), SIZE_PUSH_REG);
+
+#define EMIT_PUSH_RNUM(reg)             \
+    emitCmd (compilerInfo, getOffsetCmd (PUSH_RNUM, reg, 8), SIZE_PUSH_RNUM);
+
+#define EMIT_POP_REG(reg)              \
+    emitCmd (compilerInfo, getOffsetCmd (POP_REG, reg, 0), SIZE_POP_REG);
+
+#define EMIT_POP_RNUM(reg)             \
+    emitCmd (compilerInfo, getOffsetCmd (POP_RNUM, reg, 8), SIZE_POP_RNUM);
+
+#define EMIT_SUB_REG_REG(reg1, reg2)            \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (SUB_REG_REG, reg1, 16), reg2, 19), SIZE_SUB_REG_REG);
+
+#define EMIT_SUB_REG_IMMED(reg, immed)                                                              \
+    emitCmd (compilerInfo, getOffsetCmd (SUB_REG_IMMED, reg, 16), SIZE_SUB_REG_IMMED);              \
+    x86insert4ByteUnsignNum    (compilerInfo, immed);
+
+#define EMIT_SUB_RNUM_IMMED(reg, immed)                                                             \
+    emitCmd (compilerInfo, getOffsetCmd (SUB_RNUM_IMMED, reg, 16), SIZE_SUB_RNUM_IMMED);            \
+    x86insert4ByteUnsignNum    (compilerInfo, immed);
+
+#define EMIT_ADD_REG_IMMED(reg, immed)                                                              \
+    emitCmd (compilerInfo, getOffsetCmd (ADD_REG_IMMED, reg, 16), SIZE_ADD_REG_IMMED);              \
+    x86insert4ByteUnsignNum    (compilerInfo, immed);
+
+#define EMIT_ADD_RNUM_IMMED(reg, immed)                                                             \
+    emitCmd (compilerInfo, getOffsetCmd (ADD_RNUM_IMMED, reg, 16), SIZE_ADD_RNUM_IMMED);            \
+    x86insert4ByteUnsignNum    (compilerInfo, immed);
+
+#define EMIT_MOV_RNUM_IMMED(reg, immed)                                                             \
+    emitCmd         (compilerInfo, getOffsetCmd (MOV_RNUM_IMMED, reg, 8), SIZE_MOV_RNUM_IMMED);     \
+    x86insert8ByteUnsignNum (compilerInfo, immed);
+
+#define EMIT_MOV_REG_IMMED(reg, immed)                                                              \
+    emitCmd (compilerInfo, getOffsetCmd (MOV_REG_IMMED, reg, 8), SIZE_MOV_REG_IMMED);               \
+    x86insert8ByteUnsignNum (compilerInfo, immed);
+
+#define EMIT_ADD_REG_REG(reg1, reg2)    \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (ADD_REG_REG, reg1, 16), reg2, 19), SIZE_ADD_REG_REG);
+
+#define EMIT_ADD_RNUM_REG(reg1, reg2)    \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (ADD_RNUM_REG, reg1, 16), reg2, 19), SIZE_ADD_RNUM_REG);
+
+#define EMIT_ADD_REG_RNUM(reg1, reg2)    \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (ADD_REG_RNUM, reg1, 16), reg2, 19), SIZE_ADD_REG_RNUM);
+
+#define EMIT_ADD_RNUM_RNUM(reg1, reg2)    \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (ADD_RNUM_RNUM, reg1, 16), reg2, 19), SIZE_ADD_RNUM_RNUM);
+
+#define EMIT_MOV_REG_REG(reg1, reg2)                                                                \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (MOV_REG_REG, reg1, 16), reg2, 19), SIZE_MOV_REG_REG);
+
+#define EMIT_MOV_RNUM_REG(reg1, reg2)                                                                \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (MOV_RNUM_REG, reg1, 16), reg2, 19), SIZE_MOV_RNUM_REG);
+
+#define EMIT_MOV_REG_RNUM(reg1, reg2)                                                                \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (MOV_REG_RNUM, reg1, 16), reg2, 19), SIZE_MOV_REG_RNUM);
+
+#define EMIT_MOV_RNUM_RNUM(reg1, reg2)                                                                \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (MOV_RNUM_RNUM, reg1, 16), reg2, 19), SIZE_MOV_RNUM_RNUM);
+
+#define EMIT_JMP_REL_PTR(relPtr)                                                                        \
+    emitCmd (compilerInfo, x86_JMP, SIZE_x86_JMP);                                                      \
+    x86insert4ByteSignNum (compilerInfo, relPtr)
+
+#define EMIT_CALL_REL_PTR(relPtr)                                                                       \
+    emitCmd (compilerInfo, x86_CALL, SIZE_x86_CALL);                                                    \
+    x86insert4ByteSignNum (compilerInfo, relPtr)
+
+#define EMIT_CMP_REG_REG(reg1, reg2)                                                                    \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (CMP_REG_REG, reg1, 16), reg2, 19), SIZE_CMP_REG_REG);
+
+#define EMIT_CMP_REG_RNUM(reg1, reg2)                                                                    \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (CMP_REG_RNUM, reg1, 16), reg2, 19), SIZE_CMP_REG_RNUM);
+    
+#define EMIT_CMP_RNUM_REG(reg1, reg2)                                                                    \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (CMP_RNUM_REG, reg1, 16), reg2, 19), SIZE_CMP_RNUM_REG);
+
+#define EMIT_CMP_RNUM_RNUM(reg1, reg2)                                                                    \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (CMP_RNUM_RNUM, reg1, 16), reg2, 19), SIZE_CMP_RNUM_RNUM);
+
+#define EMIT_MULPD(reg1, reg2)                                                                            \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (MULPD, reg1, 27), reg2, 24), SIZE_MULPD);
+
+#define EMIT_DIVPD(reg1, reg2)                                                                            \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (DIVPD, reg1, 27), reg2, 24), SIZE_DIVPD);
+
+#define EMIT_CMD(cmd)                                                                                       \
+    emitCmd (compilerInfo, cmd, SIZE_##cmd);
+
+//======================================================================================================================
 
 
 void JITCompile (compilerInfo_t * compilerInfo)
@@ -88,11 +194,8 @@ void JITCompile (compilerInfo_t * compilerInfo)
     FILE * logfile = openFile ("./logs/logTranslation.txt", "w");           // clear old information
     fclose (logfile);
 
-    EMIT (compilerInfo, mov_r15_mem_buf, MOV_RNUM_IMMED, R15, 8)
-    x86insertAbsPtr (compilerInfo, (u_int64_t) compilerInfo->x86_memory_buf);
-
-    EMIT (compilerInfo, mov_rsp_stackBuf, MOV_RNUM_IMMED, R14, 8)
-    x86insertAbsPtr (compilerInfo, (u_int64_t) compilerInfo->x86StackBuf);
+    EMIT_MOV_RNUM_IMMED (R15, (u_int64_t) compilerInfo->x86_memory_buf)
+    EMIT_MOV_RNUM_IMMED (R14, (u_int64_t) compilerInfo->x86StackBuf)
 
     size_t irIndex = 0;
     size_t machineIndex = 0;
@@ -117,7 +220,7 @@ void JITCompile (compilerInfo_t * compilerInfo)
             case CMD_DIV:
                 x86TranslateSimpleMath (compilerInfo, irArr[irIndex]);
                 break;
-            
+
             case CMD_JE:
             case CMD_JBE:
             case CMD_JGE:
@@ -186,34 +289,40 @@ static void myPrintf (double num)
 static void x86TranslateMov (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
-    EMIT (compilerInfo, mov_reg_num, MOV_REG_IMMED, irCommand.reg_type, 8)
-    x86insertNum (compilerInfo, irCommand.argument)
+    EMIT_MOV_REG_IMMED (irCommand.reg_type, irCommand.argument)
 }
 
 static void x86TranslateOut (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
-    dumpx86Func (compilerInfo, "Translate [OUT]")
+    x86dumpFunc (compilerInfo, "Translate [OUT]")
 
-    size_t addrToContinue = irCommand.x86ip + SIZE_CVTSI2SD_XMM0_RAX + SIZE_PUSHA2 + SIZE_PUSHA1 + 
-             SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + SIZE_x86_CALL + SIZE_REL_PTR;
+    size_t addrToContinue = irCommand.x86ip + SIZE_CVTSI2SD + SIZE_PUSH_REG + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + 
+             SIZE_MOV_RNUM_REG + SIZE_ALIGN_STACK + SIZE_x86_CALL + SIZE_REL_PTR;
 
     int32_t relAddrPrintf = (u_int64_t)myPrintf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
-    EMIT (compilerInfo, cvtsi_xmm0_rsp, CVTSI2SD_XMM0_RSP, 0, 0)
-    EMIT (compilerInfo, pusha2, PUSHA2, 0, 0)
-    EMIT (compilerInfo, pusha1, PUSHA1, 0, 0)
-    EMIT (compilerInfo, mov_rbp_rsp, MOV_RBP_RSP, 0, 0)
-    EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)
+    EMIT_CMD                (CVTSI2SD_XMM0_RSP)
 
-    EMIT (compilerInfo, call, x86_CALL, 0, 0)
-    x86insertRelPtr (compilerInfo, relAddrPrintf)
+    EMIT_PUSH_REG           (RBX)
+    EMIT_PUSH_RNUM          (R15)
+    EMIT_PUSH_RNUM          (R14)
+    EMIT_PUSH_RNUM          (R12)
 
-    EMIT (compilerInfo, mov_rsp_rbp, MOV_RSP_RBP, 0, 0)
-    EMIT (compilerInfo, popa1, POPA1, 0, 0)
-    EMIT (compilerInfo, popa2, POPA2, 0, 0)
-    EMIT (compilerInfo, add_rsp_8, ADD_RSP_8, 0, 0)
+    EMIT_MOV_RNUM_REG       (R12, RSP)
+    EMIT_CMD                (ALIGN_STACK)
+
+    EMIT_CALL_REL_PTR       (relAddrPrintf)
+
+    EMIT_MOV_REG_RNUM       (RSP, R12)
+
+    EMIT_POP_RNUM           (R12)
+    EMIT_POP_RNUM           (R14)
+    EMIT_POP_RNUM           (R15)
+    EMIT_POP_REG            (RBX)
+
+    EMIT_ADD_REG_IMMED      (RSP, 8)
 
 }
 
@@ -221,26 +330,32 @@ static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
-    dumpx86Func (compilerInfo, "Translate [IN]")
+    x86dumpFunc (compilerInfo, "Translate [IN]")
 
-    size_t addrToContinue = irCommand.x86ip + SIZE_SUB_RSP_8 + SIZE_MOV_REG_REG + SIZE_PUSHA1 + SIZE_PUSHA2 + SIZE_MOV_RBP_RSP +
+    size_t addrToContinue = irCommand.x86ip + SIZE_SUB_REG_IMMED + SIZE_4BYTE_NUM + SIZE_MOV_REG_REG + SIZE_PUSH_REG + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_MOV_RNUM_REG +
                             SIZE_ALIGN_STACK + SIZE_x86_CALL + SIZE_REL_PTR;
 
     int32_t relAddr = (u_int64_t)myScanf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
-    EMIT (compilerInfo, sub_rsp_8, SUB_RSP_8, 0, 0)
-    EMIT_MATH_OPERS (compilerInfo, mov_rdi_rsp, MOV_REG_REG, RDI, 16, RSP, 19)
-    EMIT (compilerInfo, pusha2, PUSHA2, 0, 0)
-    EMIT (compilerInfo, pusha1, PUSHA1, 0, 0)
-    EMIT (compilerInfo, mov_rbp_rsp, MOV_RBP_RSP, 0, 0)
-    EMIT (compilerInfo, align_stack, ALIGN_STACK, 0, 0)
+    EMIT_SUB_REG_IMMED      (RSP, 8)
+    
+    EMIT_MOV_REG_REG        (RDI, RSP)
 
-    EMIT (compilerInfo, call, x86_CALL, 0, 0)
-    x86insertRelPtr (compilerInfo, relAddr);
+    EMIT_PUSH_REG           (RBX)
+    EMIT_PUSH_RNUM          (R15)
+    EMIT_PUSH_RNUM          (R14)
+    EMIT_PUSH_RNUM          (R12)
 
-    EMIT (compilerInfo, mov_rsp_rpb, MOV_RSP_RBP, 0, 0)
-    EMIT (compilerInfo, popa1, POPA1, 0, 0)
-    EMIT (compilerInfo, popa2, POPA2, 0, 0)
+    EMIT_MOV_RNUM_REG       (R12, RSP)
+    EMIT_CMD                (ALIGN_STACK)
+
+    EMIT_CALL_REL_PTR       (relAddr)
+
+    EMIT_MOV_REG_RNUM       (RSP, R12)
+    EMIT_POP_RNUM           (R12)
+    EMIT_POP_RNUM           (R14)
+    EMIT_POP_RNUM           (R15)
+    EMIT_POP_REG            (RBX)
 }
 
 static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -251,30 +366,28 @@ static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
     {
         case NUMBER:
         {
-            EMIT         (compilerInfo, m_r_im, MOV_REG_IMMED, irCommand.reg_type, 8)   // mov rax, ...
-            x86insertNum (compilerInfo, irCommand.argument);                            // mov rax, num
-            EMIT         (compilerInfo, push_reg, PUSH_REG, irCommand.reg_type, 0)      // push rax
+            EMIT_MOV_REG_IMMED          (irCommand.reg_type, irCommand.argument)                             // mov rax, num
+            EMIT_PUSH_REG               (irCommand.reg_type)                                                // push rax
             break;
         }
 
         case REGISTER:
             if (irCommand.cmd == CMD_PUSH)
             {
-                EMIT (compilerInfo, push_reg, PUSH_REG, irCommand.reg_type, 0)            // push r?x
+                EMIT_PUSH_REG           (irCommand.reg_type)                                                  // push r?x
             }
             else
             {
-                EMIT (compilerInfo, pop_reg, POP_REG, irCommand.reg_type, 0)             // pop r?x
+                EMIT_POP_REG            (irCommand.reg_type)                                                   // pop r?x
             }
             break;
         
         case NUM_REG:
             if (irCommand.cmd == CMD_PUSH)
             {
-                EMIT            (compilerInfo, m_r_im, MOV_REG_IMMED, RDX, 8)                            // mov rbx, ...
-                x86insertNum    (compilerInfo, irCommand.argument);                                      // mov rbx, num
-                EMIT_MATH_OPERS (compilerInfo, add_reg_reg, ADD_REG_REG, irCommand.reg_type, 19, RDX, 16)// add rax, rbx
-                EMIT            (compilerInfo, push_reg, PUSH_REG, irCommand.reg_type, 0)
+                EMIT_MOV_REG_IMMED      (RDX, irCommand.argument)
+                EMIT_ADD_REG_REG        (irCommand.reg_type, RDX)
+                EMIT_PUSH_REG           (irCommand.reg_type)
             }
             else
             {
@@ -285,51 +398,52 @@ static void x86TranslatePushPop (compilerInfo_t * compilerInfo, ir_t irCommand)
         case MEM_NUM:
             if (irCommand.cmd == CMD_PUSH)
             {
-                EMIT        (compilerInfo, push_r15_offset, PUSH_R15_OFFSET, 0, 0)
-                x86insertRelPtr   (compilerInfo, (u_int32_t) irCommand.argument);
+                EMIT_CMD                (PUSH_R15_OFFSET)
+                x86insert4ByteUnsignNum (compilerInfo, irCommand.argument);
             }
             else
             {
-                EMIT        (compilerInfo, pop_r15_off, POP_R15_OFFSET, 0, 0)
-                x86insertRelPtr   (compilerInfo, (u_int32_t) irCommand.argument);
+                EMIT_CMD                (POP_R15_OFFSET)
+                x86insert4ByteUnsignNum (compilerInfo, irCommand.argument);
             }
             break;
 
         case MEM_REG:
             if (irCommand.cmd == CMD_PUSH)
             {
-                EMIT_MATH_OPERS (compilerInfo, mov_r12_r15, MOV_RNUM_RNUM, R12, 16, R15, 19)
-                EMIT_MATH_OPERS (compilerInfo, add_reg_reg, ADD_RNUM_REG, R15, 16, irCommand.reg_type, 19)
-                EMIT            (compilerInfo, push_r15_offset, PUSH_R15_OFFSET, 0, 0)
-                x86insertRelPtr (compilerInfo, (int32_t) 0);
-                EMIT_MATH_OPERS (compilerInfo, mov_r15_r12, MOV_RNUM_RNUM, R15, 16, R12, 19)
+                EMIT_MOV_RNUM_RNUM      (R12, R15)
+                EMIT_ADD_RNUM_REG       (R15, irCommand.reg_type)
+                EMIT_CMD                (PUSH_R15_OFFSET)
+                x86insert4ByteSignNum   (compilerInfo, 0);
+                EMIT_MOV_RNUM_RNUM      (R15, R12)
             }
             else
             {
-                EMIT_MATH_OPERS (compilerInfo, mov_r12_r15, MOV_RNUM_RNUM, R12, 16, R15, 19)
-                EMIT_MATH_OPERS (compilerInfo, ad_r_r, ADD_RNUM_REG, R15, 16, irCommand.reg_type, 19)
-                EMIT            (compilerInfo, pop_r15_off, POP_R15_OFFSET, 0, 0)
-                x86insertRelPtr (compilerInfo, (int32_t) 0);
-                EMIT_MATH_OPERS (compilerInfo, mov_r15_r12, MOV_RNUM_RNUM, R15, 16, R12, 19)
+                EMIT_MOV_RNUM_RNUM      (R12, R15)
+                EMIT_ADD_RNUM_REG       (R15, irCommand.reg_type)
+                EMIT_CMD                (POP_R15_OFFSET)
+                x86insert4ByteSignNum   (compilerInfo, 0);
+                EMIT_MOV_RNUM_RNUM      (R15, R12)
             }
             break;
 
         case MEM_NUM_REG:
             if (irCommand.cmd == CMD_PUSH)
             {
-                EMIT_MATH_OPERS (compilerInfo, mov_r12_r15, MOV_RNUM_RNUM, R12, 16, R15, 19)
-                EMIT_MATH_OPERS (compilerInfo, add_r_r, ADD_RNUM_REG, R15, 16, irCommand.reg_type, 19)
-                EMIT            (compilerInfo, push_r15_off, PUSH_R15_OFFSET, 0, 0)
-                x86insertRelPtr (compilerInfo, (u_int32_t) irCommand.argument);
-                EMIT_MATH_OPERS (compilerInfo, mov_r15_r12, MOV_RNUM_RNUM, R15, 16, R12, 19)
+                EMIT_MOV_RNUM_RNUM      (R12, R15)
+                EMIT_ADD_RNUM_REG       (R15, irCommand.reg_type)
+                EMIT_CMD                (PUSH_R15_OFFSET)
+                x86insert4ByteUnsignNum (compilerInfo, irCommand.argument);
+                EMIT_MOV_RNUM_RNUM      (R15, R12)
+
             }
             else
             {
-                EMIT_MATH_OPERS (compilerInfo, mov_r12_r15, MOV_RNUM_RNUM, R12, 16, R15, 19)
-                EMIT_MATH_OPERS (compilerInfo, add_r_r, ADD_RNUM_REG, R15, 16, irCommand.reg_type, 19)
-                EMIT            (compilerInfo, pop_r15_off, POP_R15_OFFSET, 0, 0)
-                x86insertRelPtr (compilerInfo, (u_int32_t) irCommand.argument);
-                EMIT_MATH_OPERS (compilerInfo, mov_r15_r12, MOV_RNUM_RNUM, R15, 16, R12, 19)
+                EMIT_MOV_RNUM_RNUM      (R12, R15)
+                EMIT_ADD_RNUM_REG       (R15, irCommand.reg_type)
+                EMIT_CMD                (POP_R15_OFFSET)
+                x86insert4ByteUnsignNum (compilerInfo, irCommand.argument);
+                EMIT_MOV_RNUM_RNUM      (R15, R12)
             }
             break;
 
@@ -346,10 +460,10 @@ static void x86TranslateCondJmps (compilerInfo_t * compilerInfo, ir_t irCommand)
     size_t addrToContinue = irCommand.x86ip + SIZE_x86_COND_JMP + SIZE_REL_PTR + 
                             SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG;
 
-    EMIT (compilerInfo, pop_rax, POP_REG, RAX, 0)
-    EMIT (compilerInfo, pop_rbx, POP_REG, RDX, 0)
+    EMIT_POP_REG        (RAX)
+    EMIT_POP_REG        (RDX)
 
-    EMIT_MATH_OPERS (compilerInfo, cmp_rax_rbx, CMP_REG_REG, RDX, 16, RAX, 19)
+    EMIT_CMP_REG_REG    (RDX, RAX)
 
     opcode_t typeJmp = {
         .size = SIZE_x86_COND_JMP,
@@ -400,7 +514,7 @@ static void x86TranslateCondJmps (compilerInfo_t * compilerInfo, ir_t irCommand)
 
     int32_t relPtr = irCommand.argument - addrToContinue;
 
-    x86insertRelPtr (compilerInfo, relPtr);
+    x86insert4ByteUnsignNum (compilerInfo, relPtr);
 }
 
 static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -411,9 +525,8 @@ static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
     {
         case CMD_JMP:
         {
-            EMIT (compilerInfo, cmd_jmp, x86_JMP, 0, 0)
             int32_t relPtr = irCommand.argument - (irCommand.x86ip + SIZE_x86_JMP + SIZE_REL_PTR);
-            x86insertRelPtr (compilerInfo, relPtr);
+            EMIT_JMP_REL_PTR (relPtr)
             break;
         }
 
@@ -425,12 +538,10 @@ static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
             int32_t relPtr = irCommand.argument - addrToContinue;
             u_int64_t absAddr = (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
-            EMIT (compilerInfo, mov_rax_absAddr, MOV_REG_IMMED, RAX, 8)
-            x86insertAbsPtr (compilerInfo, absAddr);
-            EMIT (compilerInfo, mov_mem_r14_rax, MOV_MEM_R14_RAX, 0, 0)
-            EMIT (compilerInfo, add_r14_8, ADD_R14_8, 0, 0)
-            EMIT (compilerInfo, jump, x86_JMP, 0, 0)
-            x86insertRelPtr(compilerInfo, relPtr);
+            EMIT_MOV_REG_IMMED  (RAX, absAddr)
+            EMIT_CMD            (MOV_MEM_R14_RAX)
+            EMIT_ADD_RNUM_IMMED (R14, 8)
+            EMIT_JMP_REL_PTR    (relPtr)
 
             break;
         }  
@@ -447,29 +558,28 @@ static void x86TranslateSqrt (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
-    EMIT            (compilerInfo, pop_rax, POP_REG, RAX, 0)
-    EMIT            (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+    EMIT_POP_REG        (RAX)
+    EMIT_CVTSI2SD_REG   (XMM0, RAX)
 
-    EMIT            (compilerInfo, mov_rax, MOV_REG_IMMED, RAX, 8)
-    x86insertNum    (compilerInfo, 1000);
-    EMIT            (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
+    EMIT_MOV_REG_IMMED  (RAX, 1000)
+    EMIT_CVTSI2SD_REG   (XMM1, RAX)
 
-    EMIT_MATH_OPERS (compilerInfo, divpd_xmm0_xmm1, DIVPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
-    EMIT            (compilerInfo, sqrt, SQRTPD_XMM0_XMM0, 0, 0)
-    EMIT_MATH_OPERS (compilerInfo, mulpd_xmm0_xmm1, MULPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
+    EMIT_DIVPD          (XMM0, XMM1)
+    EMIT_CMD            (SQRTPD_XMM0_XMM0)
+    EMIT_MULPD          (XMM0, XMM1)
 
-    EMIT            (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
-    EMIT            (compilerInfo, push, PUSH_REG, RAX, 0)
+    EMIT_CVTSD2SI_REG   (RAX, XMM0)
+    EMIT_PUSH_REG       (RAX)
 }
 
 static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
-    EMIT (compilerInfo, pop_rax, POP_REG, RAX, 0)
-    EMIT (compilerInfo, pop_rbx, POP_REG, RDX, 0)
+    EMIT_POP_REG        (RAX)
+    EMIT_POP_REG        (RDX)
 
-    EMIT_MATH_OPERS (compilerInfo, cmp_rax_rbx, CMP_REG_REG, RDX, 16, RAX, 19)
+    EMIT_CMP_REG_REG    (RDX, RAX)
 
     opcode_t bool_expr = {
         .size = SIZE_x86_COND_JMP,
@@ -516,23 +626,20 @@ static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
         }
     }
 
-    x86insertCmd (compilerInfo, bool_expr);                                             // 
-    int32_t relAddr = SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP +    // -> j? .equal
-                    SIZE_REL_PTR;                                                       //
-    x86insertRelPtr (compilerInfo, relAddr);                                            //
+    x86insertCmd (compilerInfo, bool_expr);
+    int32_t relAddr = SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP +    // -> j? .equal
+                    SIZE_REL_PTR;
+    x86insert4ByteSignNum (compilerInfo, relAddr);
 
-    EMIT            (compilerInfo, mov_rax_0, MOV_REG_IMMED, RAX, 8)    //
-    x86insertNum    (compilerInfo, 0);                                  // -> push 0
-    EMIT            (compilerInfo, push_rax, PUSH_REG, RAX, 0)          //
+    EMIT_MOV_REG_IMMED  (RAX, 0)
+    EMIT_PUSH_REG       (RAX)
 
-    EMIT (compilerInfo, jmp_end, x86_JMP, 0, 0)                         //jmp .after_equal
-    int32_t relAddrEnd = SIZE_MOV_REG_IMMED+SIZE_NUM+SIZE_PUSH_REG;
-    x86insertRelPtr (compilerInfo, relAddrEnd);
+    int32_t relAddrEnd = SIZE_MOV_REG_IMMED+SIZE_8BYTE_NUM+SIZE_PUSH_REG;
+    EMIT_JMP_REL_PTR    (relAddrEnd)           //jmp .after_equal
 
     //.equal
-    EMIT (compilerInfo, mov_rax_1, MOV_REG_IMMED, RAX, 8)   //
-    x86insertNum (compilerInfo, 1);                         // -> push 1
-    EMIT (compilerInfo, push_rax1, PUSH_REG, RAX, 0)        //
+    EMIT_MOV_REG_IMMED  (RAX, 1)
+    EMIT_PUSH_REG       (RAX)
     //.after_equal
 
 }
@@ -545,64 +652,62 @@ static void x86TranslateSimpleMath  (compilerInfo_t * compilerInfo, ir_t irComma
     {
         case CMD_ADD:
         {
-            EMIT (compilerInfo, pop_reg1, POP_REG, RAX, 0)
-            EMIT (compilerInfo, pop_reg2, POP_REG, RDX, 0)
-            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, ADD_REG_REG, RDX, 16, RAX, 19)
-            EMIT (compilerInfo, push_reg1, PUSH_REG, RDX, 0)
+            EMIT_POP_REG        (RAX)
+            EMIT_POP_REG        (RDX)
+            EMIT_ADD_REG_REG    (RDX, RAX)
+            EMIT_PUSH_REG       (RDX)
             break;
         }
             
         
         case CMD_SUB:
         {
-            EMIT (compilerInfo, pop_reg1, POP_REG, RAX, 0)
-            EMIT (compilerInfo, pop_reg2, POP_REG, RDX, 0)
-            EMIT_MATH_OPERS (compilerInfo, add_reg_reg, SUB_REG_REG, RDX, 16, RAX, 19)
-            EMIT (compilerInfo, push_reg1, PUSH_REG, RDX, 0)
+            EMIT_POP_REG        (RAX)
+            EMIT_POP_REG        (RDX)
+            EMIT_SUB_REG_REG    (RDX, RAX)
+            EMIT_PUSH_REG       (RDX)
             break;
         }
             
         case CMD_MUL:
         {
-            EMIT (compilerInfo, pop1, POP_REG, RAX, 0)
-            EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
+            EMIT_POP_REG        (RAX)
+            EMIT_CVTSI2SD_REG   (XMM1, RAX)
 
-            EMIT (compilerInfo, pop2, POP_REG, RAX, 0)
-            EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+            EMIT_POP_REG        (RAX)
+            EMIT_CVTSI2SD_REG   (XMM0, RAX)
 
-            EMIT (compilerInfo, mov_reg_num, MOV_REG_IMMED, RAX, 8)
-            x86insertNum (compilerInfo, 1000);
-            EMIT (compilerInfo, cvtsi_xmm2_rax, CVTSI2SD_XMM2_RAX, 0, 0)
+            EMIT_MOV_REG_IMMED  (RAX, 1000)
+            EMIT_CVTSI2SD_REG   (XMM2, RAX)
 
-            EMIT_MATH_OPERS (compilerInfo, divpd1, DIVPD_XMM0_XMM0, XMM0, 27, XMM2, 24)
-            EMIT_MATH_OPERS (compilerInfo, divpd2, DIVPD_XMM0_XMM0, XMM1, 27, XMM2, 24)
+            EMIT_DIVPD          (XMM0, XMM2)
+            EMIT_DIVPD          (XMM1, XMM2)
 
-            EMIT_MATH_OPERS (compilerInfo, mulpd1, MULPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
-            EMIT_MATH_OPERS (compilerInfo, mulpd2, MULPD_XMM0_XMM0, XMM0, 27, XMM2, 24)
+            EMIT_MULPD          (XMM0, XMM1)
+            EMIT_MULPD          (XMM0, XMM2)
 
-            EMIT (compilerInfo, cvtsd, CVTSD2SI_RAX_XMM0, 0, 0)
-            EMIT (compilerInfo, push, PUSH_REG, RAX, 0)
+            EMIT_CVTSD2SI_REG   (RAX, XMM0)
+            EMIT_PUSH_REG       (RAX)
             break;
         }
             
 
         case CMD_DIV:
         {
-            EMIT (compilerInfo, pop1, POP_REG, RAX, 0)
-            EMIT (compilerInfo, cvtsi_xmm1_rax, CVTSI2SD_XMM1_RAX, 0, 0)
+            EMIT_POP_REG        (RAX)
+            EMIT_CVTSI2SD_REG   (XMM1, RAX)
 
-            EMIT (compilerInfo, pop2, POP_REG, RAX, 0)
-            EMIT (compilerInfo, cvtsi_xmm0_rax, CVTSI2SD_XMM0_RAX, 0, 0)
+            EMIT_POP_REG        (RAX)
+            EMIT_CVTSI2SD_REG   (XMM0, RAX)
 
-            EMIT (compilerInfo, mov_reg_num, MOV_REG_IMMED, RAX, 8)
-            x86insertNum (compilerInfo, 1000);
-            EMIT (compilerInfo, cvtsi_xmm2_rax, CVTSI2SD_XMM2_RAX, 0, 0)
+            EMIT_MOV_REG_IMMED  (RAX, 1000)
+            EMIT_CVTSI2SD_REG   (XMM2, RAX)
 
-            EMIT_MATH_OPERS (compilerInfo, divpd, DIVPD_XMM0_XMM0, XMM0, 27, XMM1, 24)
-            EMIT_MATH_OPERS (compilerInfo, mulpd, MULPD_XMM0_XMM0, XMM0, 27, XMM2, 24)
+            EMIT_DIVPD          (XMM0, XMM1)
+            EMIT_MULPD          (XMM0, XMM2)
 
-            EMIT (compilerInfo, cvtsd_rax_xmm0, CVTSD2SI_RAX_XMM0, 0, 0)
-            EMIT (compilerInfo, push, PUSH_REG, RAX, 0)
+            EMIT_CVTSD2SI_REG   (RAX, XMM0)
+            EMIT_PUSH_REG       (RAX)
             break;
         }
             
@@ -705,32 +810,44 @@ static void dumpFunc (compilerInfo_t * compilerInfo, const char * message, size_
 
 static void x86TranslateHlt (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
-    MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
-
-    EMIT (compilerInfo, ret_main, x86_RET, 0, 0)
+    MY_ASSERT   (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
+    EMIT_CMD    (x86_RET)
 }
 
 static void x86TranslateRet (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
     
-    EMIT (compilerInfo, sub_r14_8, SUB_R14_8, 0, 0)
-    EMIT (compilerInfo, push_mem_r14, PUSH_MEM_R14, 0, 0)
-    EMIT (compilerInfo, ret, x86_RET, 0, 0)
+    EMIT_SUB_RNUM_IMMED (R14, 8)
+    EMIT_CMD            (PUSH_MEM_R14)
+    EMIT_CMD            (x86_RET)
 }
 
-static void insertAbsPtr (compilerInfo_t * compilerInfo, u_int64_t ptr)
+static void insert8ByteSignNum (compilerInfo_t * compilerInfo, int64_t num)
+{
+    *((int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len)) = num;
+    compilerInfo->machineCode.len += sizeof (int64_t);
+}
+
+static void insert8ByteUnsignNum (compilerInfo_t * compilerInfo, u_int64_t num)
 {
     *(u_int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len) = 
-                    ptr;
+                    num;
     compilerInfo->machineCode.len += sizeof (u_int64_t);
 }
 
-static void insertRelPtr (compilerInfo_t * compilerInfo, int32_t ptr)
+static void insert4ByteSignNum (compilerInfo_t * compilerInfo, int32_t num)
 {
-    * (int32_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len) = 
-                    ptr;
+    *(int32_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len) = 
+                    num;
     compilerInfo->machineCode.len += sizeof(int32_t);
+}
+
+static void insert4ByteUnsignNum (compilerInfo_t * compilerInfo, u_int32_t num)
+{
+    *(u_int32_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len) = 
+                    num;
+    compilerInfo->machineCode.len += sizeof(u_int32_t);
 }
 
 static void insertCmd (compilerInfo_t * compilerInfo, opcode_t cmd)
@@ -739,8 +856,3 @@ static void insertCmd (compilerInfo_t * compilerInfo, opcode_t cmd)
     compilerInfo->machineCode.len += cmd.size;
 }
 
-static void insertNum (compilerInfo_t * compilerInfo, int64_t number)
-{
-    *((int64_t *) (compilerInfo->machineCode.buf + compilerInfo->machineCode.len)) = number;
-    compilerInfo->machineCode.len += sizeof (int64_t);
-}

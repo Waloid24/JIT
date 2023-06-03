@@ -16,6 +16,7 @@ int main (int argc, char * argv[])
     compilerInfo_t compilerInfo = {};
 
     compilerInfo.byteCode = readCode (argv[1]);
+    // compilerInfo.byteCode = readCode ("./tests/quadraticEquation.bin");
 
     // dumpCode        (&compilerInfo);
 
@@ -65,7 +66,7 @@ void runCode (compilerInfo_t compilerInfo)
     MY_ASSERT (executableBuffer == nullptr, "Error in buffer casting");
 
     clock_t begin = clock ();
-    for (int i = 0; i < 1000000; i++)
+    // for (int i = 0; i < 1000000; i++)
         executableBuffer();
 
     clock_t end = clock ();

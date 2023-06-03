@@ -35,8 +35,8 @@ const int NOT_PTR = -1;
         .argument_type  = LABEL,                    \
         .x86size        = SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +              \
                             SIZE_x86_COND_JMP + SIZE_REL_PTR + SIZE_MOV_REG_IMMED +     \
-                            SIZE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP + SIZE_REL_PTR +    \
-                            SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG               \
+                            SIZE_8BYTE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP + SIZE_REL_PTR +    \
+                            SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + SIZE_PUSH_REG               \
     };
 
 static int checkBit         (const int value, const int position);
@@ -167,7 +167,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                     .nativeIP       = i-1,
                     .argument_type  = NUMBER,
                     .argument       = compilerInfo->byteCode.buf[i],
-                    .x86size        = SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_PUSH_REG
+                    .x86size        = SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + SIZE_PUSH_REG
                 };
             }
             else
@@ -231,7 +231,7 @@ void fillIRArray (compilerInfo_t * compilerInfo)
                 .argument_type  = NUM_REG,
                 .reg_type       = nReg,
                 .argument       = numIndex,
-                .x86size        = SIZE_MOV_REG_IMMED + SIZE_NUM + SIZE_ADD_REG_REG + SIZE_PUSH_REG
+                .x86size        = SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + SIZE_ADD_REG_REG + SIZE_PUSH_REG
             };
         }
         else if ((checkBit(compilerInfo->byteCode.buf[i], NUM) == 1) && 

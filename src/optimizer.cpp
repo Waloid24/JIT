@@ -19,7 +19,7 @@ void optimizeIR (compilerInfo_t * compilerInfo)
             irArr[i].argument_type  = REG_NUM;
             irArr[i].reg_type       = irArr[i+1].reg_type;
             irArr[i].name           = "mov";
-            irArr[i].x86size        = SIZE_MOV_REG_IMMED + SIZE_NUM;
+            irArr[i].x86size        = SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM;
             irArr[i+1].cmd          = CMD_TRASH;
             irArr[i+1].name         = "trash";
             i++;

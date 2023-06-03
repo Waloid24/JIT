@@ -53,7 +53,7 @@ enum X86_CMD : u_int64_t {
     //pop [r15 + offset]
     POP_R15_OFFSET = 0x878f41,         // must be followed by 32bit offset
 
-    ADD_REG_REG = 0xc00148,            // first reg - "|" with shifted by 19 REG_MASK, second reg - "|" with shifted by 16 REG_MASK
+    ADD_REG_REG = 0xc00148,            // first reg - "|" with shifted by 19(16!!!) REG_MASK, second reg - "|" with shifted by 16(19!!!) REG_MASK
     ADD_RNUM_REG = 0xc00149,
     ADD_RNUM_RNUM = 0xc0014d,
     ADD_R14_8 = 0x08c68349,             // for callStack
@@ -91,6 +91,9 @@ enum X86_CMD : u_int64_t {
     MULPD_XMM0_XMM0 = 0xc0590f66,       // xmm0*xmm0 -> xmm0
                                         // first reg - "|" with shifted by 27 REG_MASK, second reg - "|" with shifted by 24 REG_MASK
 
+    MULPD = 0xc0590f66,
+    DIVPD = 0xc05e0f66,
+
     SQRTPD_XMM0_XMM0 = 0xc0510f66,      // sqrt(xmm0) -> xmm0 
 
     x86_RET = 0xC3,                     // ret
@@ -101,7 +104,10 @@ enum X86_CMD : u_int64_t {
 
     x86_CALL = 0xe8,
 
-    CMP_REG_REG =  0xc03948,            // shifted by 19 and by 16 REG_MASK   
+    CMP_REG_REG     = 0xc03948,            // shifted by 19 (16!!!) and by 16 (19!!!) REG_MASK  
+    CMP_RNUM_REG    = 0xc03949,
+    CMP_REG_RNUM    = 0xc0394c,
+    CMP_RNUM_RNUM   = 0xc0394d,
 
     SYSCALL = 0x050f, 
 
@@ -118,8 +124,20 @@ enum X86_CMD : u_int64_t {
     ADD_RSP_8  = 0x08c48348,  
     LEA_RDI_RSP = 0x00247c8d48,
 
+    SUB_REG_IMMED  = 0xe88148,       // mask with offset 16
+    SUB_RNUM_IMMED = 0xe88149,
+
+    ADD_REG_IMMED  = 0xc08148,       // mask with offset 16
+    ADD_RNUM_IMMED = 0xc08149,
+
     ADD_RSP = 0xc48148,
-    SUB_RSP = 0xec8148
+    SUB_RSP = 0xec8148,
+
+    CVTSI2SD_REG  = 0xc02a0f48f2,
+    CVTSI2SD_RNUM = 0xc02a0f49f2,
+
+    CVTSD2SI_REG  = 0xc02d0f48f2,
+    CVTSD2SI_RNUM = 0xc02d0f49f2
 };
 
 
@@ -137,10 +155,6 @@ enum x86_Commands_Size {
     SIZE_MOV_R15_OFFSET_REG = 3,//ok
     SIZE_PUSH_REG = 1,          //ok
     SIZE_PUSH_MEM_R14 = 3,
-    SIZE_PUSHA1 = 6,
-    SIZE_PUSHA2 = 5,
-    SIZE_POPA1 = 8,
-    SIZE_POPA2 = 3,
     SIZE_PUSH_RNUM = 2,         //ok
     SIZE_PUSH_R15_OFFSET = 3,   //ok
     SIZE_POP_REG = 1,           //ok
@@ -155,31 +169,35 @@ enum x86_Commands_Size {
     SIZE_IMUL_REG_REG = 4,      
     SIZE_CQO = 2,
     SIZE_IDIV_REG = 3,
-    SIZE_CVTSI2SD_XMM0_RAX = 5,
-    SIZE_CVTSI2SD_XMM1_RAX = 5,
-    SIZE_CVTSI2SD_XMM2_RAX = 5,
-    SIZE_CVTSD2SI_RAX_XMM0 = 5,
     SIZE_CVTSI2SD_XMM0_RSP = 5,
     SIZE_SQRTPD_XMM0_XMM0 = 4,
     SIZE_DIVPD_XMM0_XMM0 = 4,
     SIZE_MULPD_XMM0_XMM0 = 4,
+    SIZE_MULPD = 4,
+    SIZE_DIVPD = 4,
     SIZE_x86_RET = 1,               //ok
     SIZE_x86_JMP = 1,
     SIZE_x86_COND_JMP = 2,
     SIZE_x86_CALL = 1,
+
     SIZE_CMP_REG_REG = 3,
-    SIZE_NUM = 8,
+    SIZE_CMP_RNUM_REG = 3,
+    SIZE_CMP_REG_RNUM = 3,
+    SIZE_CMP_RNUM_RNUM = 3, 
+
+    SIZE_4BYTE_NUM = 4,
+    SIZE_8BYTE_NUM = 8,
     SIZE_REL_PTR = 4,
     SIZE_ABS_PTR = 8,
-    SIZE_SYSCALL = 2,
-    SIZE_XOR_RDI_RDI = 3,
     SIZE_ALIGN_STACK = 4,
-    SIZE_SUB_RSP_8  = 4,
-    SIZE_ADD_RSP_8  = 4,
-    SIZE_LEA_RDI_RSP = 5,
-    SIZE_ADD_RSP = 3,
-    SIZE_SUB_RSP = 3, 
-    SIZE_AND_RSP_10 = 7
+
+    SIZE_SUB_REG_IMMED = 3,
+    SIZE_SUB_RNUM_IMMED = 3,
+    SIZE_ADD_REG_IMMED = 3,
+    SIZE_ADD_RNUM_IMMED = 3,
+
+    SIZE_CVTSI2SD = 5,
+    SIZE_CVTSD2SI = 5
 };
 
 enum REG_MASK {
