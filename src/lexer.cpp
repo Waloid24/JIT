@@ -23,7 +23,7 @@ const int NOT_PTR = -1;
         .argument_type  = LABEL,                        \
         .argument       = compilerInfo->byteCode.buf[i], \
         .x86size        = SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +   \
-                            SIZE_x86_COND_JMP + SIZE_REL_PTR                 \
+                            SIZE_COND_JMP + SIZE_REL_PTR                 \
     };
 
 #define BOOL_EXPR(command)                          \
@@ -34,8 +34,8 @@ const int NOT_PTR = -1;
         .nativeIP       = i,                        \
         .argument_type  = LABEL,                    \
         .x86size        = SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG +              \
-                            SIZE_x86_COND_JMP + SIZE_REL_PTR + SIZE_MOV_REG_IMMED +     \
-                            SIZE_8BYTE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP + SIZE_REL_PTR +    \
+                            SIZE_COND_JMP + SIZE_REL_PTR + SIZE_MOV_REG_IMMED +     \
+                            SIZE_8BYTE_NUM + SIZE_PUSH_REG + SIZE_JMP + SIZE_REL_PTR +    \
                             SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + SIZE_PUSH_REG               \
     };
 

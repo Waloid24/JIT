@@ -35,8 +35,8 @@ DEF_CMD (MUL,  5,  NO,
         .nativeIP       = i,
         .x86size        = SIZE_POP_REG + SIZE_CVTSI2SD + SIZE_POP_REG +
                             SIZE_CVTSI2SD + SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + 
-                            SIZE_CVTSI2SD + SIZE_DIVPD_XMM0_XMM0 + SIZE_DIVPD_XMM0_XMM0 +
-                            SIZE_MULPD_XMM0_XMM0 + SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI +
+                            SIZE_CVTSI2SD + SIZE_DIVPD + SIZE_DIVPD +
+                            SIZE_MULPD + SIZE_MULPD + SIZE_CVTSD2SI +
                             SIZE_PUSH_REG
     };
 })
@@ -49,8 +49,8 @@ DEF_CMD (DIV,  6,  NO,
         .nativeIP       = i,
         .x86size        = SIZE_POP_REG + SIZE_CVTSI2SD + SIZE_POP_REG +
                             SIZE_CVTSI2SD + SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM +
-                            SIZE_CVTSI2SD + SIZE_DIVPD_XMM0_XMM0 + 
-                            SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI + 
+                            SIZE_CVTSI2SD + SIZE_DIVPD + 
+                            SIZE_MULPD + SIZE_CVTSD2SI + 
                             SIZE_PUSH_REG
     };
 })
@@ -61,7 +61,7 @@ DEF_CMD (OUT,  7,  NO,
         .cmd            = CMD_OUT,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86size        = SIZE_CVTSI2SD + SIZE_PUSH_REG + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_MOV_REG_REG + SIZE_ALIGN_STACK + SIZE_x86_CALL +
+        .x86size        = SIZE_CVTSI2SD + SIZE_PUSH_REG + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_MOV_REG_REG + SIZE_ALIGN_STACK + SIZE_CALL +
                             SIZE_REL_PTR + SIZE_MOV_REG_REG + SIZE_POP_REG + SIZE_POP_RNUM + SIZE_POP_RNUM + SIZE_POP_RNUM + SIZE_ADD_REG_IMMED + SIZE_4BYTE_NUM
     };
 })
@@ -73,7 +73,7 @@ DEF_CMD (IN,   8,  NO,
         .nativeSize     = 1,
         .nativeIP       = i,
         .x86size        = SIZE_SUB_REG_IMMED + SIZE_4BYTE_NUM + SIZE_MOV_REG_REG + SIZE_PUSH_REG + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_MOV_RBP_RSP + SIZE_ALIGN_STACK + 
-                            SIZE_x86_CALL + SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POP_REG + SIZE_POP_RNUM + SIZE_POP_RNUM + SIZE_POP_RNUM
+                            SIZE_CALL + SIZE_REL_PTR + SIZE_MOV_RSP_RBP + SIZE_POP_REG + SIZE_POP_RNUM + SIZE_POP_RNUM + SIZE_POP_RNUM
     };
 })
 DEF_CMD (JMP,  9,  YES,
@@ -86,7 +86,7 @@ DEF_CMD (JMP,  9,  YES,
         .nativeIP       = i-1,
         .argument_type  = LABEL,
         .argument       = compilerInfo->byteCode.buf[i],
-        .x86size        = SIZE_x86_JMP + SIZE_REL_PTR
+        .x86size        = SIZE_JMP + SIZE_REL_PTR
     };
 })
 DEF_CMD (CALL, 10, YES,
@@ -101,7 +101,7 @@ DEF_CMD (CALL, 10, YES,
         .argument_type  = LABEL,
         .argument       = compilerInfo->byteCode.buf[i],
         .x86size        = SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + SIZE_MOV_MEM_R14_RAX + 
-                            SIZE_ADD_RNUM_IMMED + SIZE_4BYTE_NUM + SIZE_x86_JMP + SIZE_REL_PTR
+                            SIZE_ADD_RNUM_IMMED + SIZE_4BYTE_NUM + SIZE_JMP + SIZE_REL_PTR
     };
 })
 DEF_CMD (RET,  11, NO,
@@ -112,7 +112,7 @@ DEF_CMD (RET,  11, NO,
         .cmd            = CMD_RET,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86size        = SIZE_SUB_R14_8 + SIZE_PUSH_MEM_R14 + SIZE_x86_RET
+        .x86size        = SIZE_SUB_RNUM_IMMED + SIZE_4BYTE_NUM + SIZE_PUSH_MEM_R14 + SIZE_RET
     };
 })
 DEF_CMD (JA,   12, YES,
@@ -152,7 +152,7 @@ DEF_CMD (HLT,  18, NO,
         .cmd            = CMD_HLT,
         .nativeSize     = 1,
         .nativeIP       = i,
-        .x86size        = SIZE_x86_RET
+        .x86size        = SIZE_RET
     };
 })
 DEF_CMD (SQRT, 19, NO,
@@ -163,8 +163,8 @@ DEF_CMD (SQRT, 19, NO,
         .nativeSize     = 1,
         .nativeIP       = i,
         .x86size        = SIZE_POP_REG + SIZE_CVTSI2SD + SIZE_MOV_REG_IMMED +
-                            SIZE_8BYTE_NUM + SIZE_CVTSI2SD + SIZE_DIVPD_XMM0_XMM0 + 
-                            SIZE_SQRTPD_XMM0_XMM0 + SIZE_MULPD_XMM0_XMM0 + SIZE_CVTSD2SI + SIZE_PUSH_REG
+                            SIZE_8BYTE_NUM + SIZE_CVTSI2SD + SIZE_DIVPD + 
+                            SIZE_SQRTPD_XMM0_XMM0 + SIZE_MULPD + SIZE_CVTSD2SI + SIZE_PUSH_REG
     };
 })
 DEF_CMD (MEOW, 20, NO,

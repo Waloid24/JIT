@@ -103,6 +103,15 @@ static void emitCmd (compilerInfo_t * compilerInfo, u_int64_t cmd, u_int64_t cmd
 #define EMIT_SUB_REG_REG(reg1, reg2)            \
     emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (SUB_REG_REG, reg1, 16), reg2, 19), SIZE_SUB_REG_REG);
 
+#define EMIT_SUB_RNUM_REG(reg1, reg2)            \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (SUB_RNUM_REG, reg1, 16), reg2, 19), SIZE_SUB_RNUM_REG);
+
+#define EMIT_SUB_REG_RNUM(reg1, reg2)            \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (SUB_REG_RNUM, reg1, 16), reg2, 19), SIZE_SUB_REG_RNUM);
+
+#define EMIT_SUB_RNUM_RNUM(reg1, reg2)            \
+    emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (SUB_RNUM_RNUM, reg1, 16), reg2, 19), SIZE_SUB_RNUM_RNUM);
+
 #define EMIT_SUB_REG_IMMED(reg, immed)                                                              \
     emitCmd (compilerInfo, getOffsetCmd (SUB_REG_IMMED, reg, 16), SIZE_SUB_REG_IMMED);              \
     x86insert4ByteUnsignNum    (compilerInfo, immed);
@@ -152,11 +161,11 @@ static void emitCmd (compilerInfo_t * compilerInfo, u_int64_t cmd, u_int64_t cmd
     emitCmd (compilerInfo, getOffsetCmd (getOffsetCmd (MOV_RNUM_RNUM, reg1, 16), reg2, 19), SIZE_MOV_RNUM_RNUM);
 
 #define EMIT_JMP_REL_PTR(relPtr)                                                                        \
-    emitCmd (compilerInfo, x86_JMP, SIZE_x86_JMP);                                                      \
+    emitCmd (compilerInfo, JMP, SIZE_JMP);                                                      \
     x86insert4ByteSignNum (compilerInfo, relPtr)
 
 #define EMIT_CALL_REL_PTR(relPtr)                                                                       \
-    emitCmd (compilerInfo, x86_CALL, SIZE_x86_CALL);                                                    \
+    emitCmd (compilerInfo, CALL, SIZE_CALL);                                                    \
     x86insert4ByteSignNum (compilerInfo, relPtr)
 
 #define EMIT_CMP_REG_REG(reg1, reg2)                                                                    \
@@ -299,7 +308,7 @@ static void x86TranslateOut (compilerInfo_t * compilerInfo, ir_t irCommand)
     x86dumpFunc (compilerInfo, "Translate [OUT]")
 
     size_t addrToContinue = irCommand.x86ip + SIZE_CVTSI2SD + SIZE_PUSH_REG + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + 
-             SIZE_MOV_RNUM_REG + SIZE_ALIGN_STACK + SIZE_x86_CALL + SIZE_REL_PTR;
+             SIZE_MOV_RNUM_REG + SIZE_ALIGN_STACK + SIZE_CALL + SIZE_REL_PTR;
 
     int32_t relAddrPrintf = (u_int64_t)myPrintf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
@@ -333,7 +342,7 @@ static void x86TranslateIn (compilerInfo_t * compilerInfo, ir_t irCommand)
     x86dumpFunc (compilerInfo, "Translate [IN]")
 
     size_t addrToContinue = irCommand.x86ip + SIZE_SUB_REG_IMMED + SIZE_4BYTE_NUM + SIZE_MOV_REG_REG + SIZE_PUSH_REG + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_PUSH_RNUM + SIZE_MOV_RNUM_REG +
-                            SIZE_ALIGN_STACK + SIZE_x86_CALL + SIZE_REL_PTR;
+                            SIZE_ALIGN_STACK + SIZE_CALL + SIZE_REL_PTR;
 
     int32_t relAddr = (u_int64_t)myScanf - (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
 
@@ -457,7 +466,7 @@ static void x86TranslateCondJmps (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
 
-    size_t addrToContinue = irCommand.x86ip + SIZE_x86_COND_JMP + SIZE_REL_PTR + 
+    size_t addrToContinue = irCommand.x86ip + SIZE_COND_JMP + SIZE_REL_PTR + 
                             SIZE_POP_REG + SIZE_POP_REG + SIZE_CMP_REG_REG;
 
     EMIT_POP_REG        (RAX)
@@ -466,8 +475,8 @@ static void x86TranslateCondJmps (compilerInfo_t * compilerInfo, ir_t irCommand)
     EMIT_CMP_REG_REG    (RDX, RAX)
 
     opcode_t typeJmp = {
-        .size = SIZE_x86_COND_JMP,
-        .code = x86_COND_JMP
+        .size = SIZE_COND_JMP,
+        .code = COND_JMP
     };
 
     switch (irCommand.cmd)
@@ -525,7 +534,7 @@ static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
     {
         case CMD_JMP:
         {
-            int32_t relPtr = irCommand.argument - (irCommand.x86ip + SIZE_x86_JMP + SIZE_REL_PTR);
+            int32_t relPtr = irCommand.argument - (irCommand.x86ip + SIZE_JMP + SIZE_REL_PTR);
             EMIT_JMP_REL_PTR (relPtr)
             break;
         }
@@ -533,7 +542,7 @@ static void x86TranslateJmpCall (compilerInfo_t * compilerInfo, ir_t irCommand)
         case CMD_CALL:
         {
             size_t addrToContinue = irCommand.x86ip + SIZE_MOV_REG_IMMED + SIZE_ABS_PTR + 
-                    SIZE_MOV_MEM_R14_RAX + SIZE_ADD_R14_8 + SIZE_x86_JMP + SIZE_REL_PTR;
+                    SIZE_MOV_MEM_R14_RAX + SIZE_ADD_REG_IMMED + SIZE_4BYTE_NUM + SIZE_JMP + SIZE_REL_PTR;
 
             int32_t relPtr = irCommand.argument - addrToContinue;
             u_int64_t absAddr = (u_int64_t)(compilerInfo->machineCode.buf + addrToContinue);
@@ -582,8 +591,8 @@ static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
     EMIT_CMP_REG_REG    (RDX, RAX)
 
     opcode_t bool_expr = {
-        .size = SIZE_x86_COND_JMP,
-        .code = x86_COND_JMP
+        .size = SIZE_COND_JMP,
+        .code = COND_JMP
     };
 
     switch (irCommand.cmd)
@@ -627,7 +636,7 @@ static void x86TranslateComp (compilerInfo_t * compilerInfo, ir_t irCommand)
     }
 
     x86insertCmd (compilerInfo, bool_expr);
-    int32_t relAddr = SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + SIZE_PUSH_REG + SIZE_x86_JMP +    // -> j? .equal
+    int32_t relAddr = SIZE_MOV_REG_IMMED + SIZE_8BYTE_NUM + SIZE_PUSH_REG + SIZE_JMP +    // -> j? .equal
                     SIZE_REL_PTR;
     x86insert4ByteSignNum (compilerInfo, relAddr);
 
@@ -811,7 +820,7 @@ static void dumpFunc (compilerInfo_t * compilerInfo, const char * message, size_
 static void x86TranslateHlt (compilerInfo_t * compilerInfo, ir_t irCommand)
 {
     MY_ASSERT   (compilerInfo == nullptr, "There is no access to the main structure (compilerInfo)")
-    EMIT_CMD    (x86_RET)
+    EMIT_CMD    (RET)
 }
 
 static void x86TranslateRet (compilerInfo_t * compilerInfo, ir_t irCommand)
@@ -820,7 +829,7 @@ static void x86TranslateRet (compilerInfo_t * compilerInfo, ir_t irCommand)
     
     EMIT_SUB_RNUM_IMMED (R14, 8)
     EMIT_CMD            (PUSH_MEM_R14)
-    EMIT_CMD            (x86_RET)
+    EMIT_CMD            (RET)
 }
 
 static void insert8ByteSignNum (compilerInfo_t * compilerInfo, int64_t num)
