@@ -44,10 +44,19 @@ make run ./tests/[executable_file_name]
 
 Посмотрим более детально на перевод команд. Я приведу здесь только небольшую их часть, остальное можно найти [здесь](https://github.com/Waloid24/JIT/blob/main/src/translateCommand.cpp).
 
-|      |   push                     |     pop    |   in    | add        |   mul  |    jmp    |  je | call |ret  | hlt |
-|:----:|:--------------------------:|:----------:|:-------:|:----------:|:------:|:---------:|:---:|:----:|:---:|:---:|
-|Native|   push 5                   |pop [rax+6] |  in     |add rax, rbx| mul rax|jmp .label |je .label|call .label|ret| нет аналога |
-|x86-64| mov rax, 5 <br/> push rax  | mov r12, r15 <br/> add r15, rax <br/> pop [r15+6] <br/> mov r15, 12| sub rsp, 8 <br/> mov rdi, rsp <br/> pusha <br/> mov r12, rsp <br/> and rsp,byte -0x10 <br/> call myScanf <br/> mov rsp, r12 <br/> popa | pop rax <br/> pop rdx <br/> add rdx, rax <br/> push rdx | pop rax <br/> cvtsi2sd xmm1, rax <br/> pop rax <br/> cvtsi2sd xmm0, rax <br/> mov rax, 1000 <br/> cvtsi2sd xmm2, rax <br/> divpd xmm0, xmm2 <br/> divpd xmm1, xmm2 <br/> mulpd xmm0, xmm1 <br/> mulpd xmm0, xmm2 <br/> cvtsd2si rax, xmm0 <br/> push rax | jmp relAddr | pop rax <br/> pop rdx <br/> cmp rdx, rax <br/> je .label | mov rax, absPtr <br/> mov qword [r14], rax <br/> add r14, 8 <br/> jmp relPtr |sub r14, 8 <br/> push [r14] <br/> ret | ret |
+||Native | x86-64 |
+|:---:|:-----:|:------:|
+|push|push 5 |mov rax, 5 <br/> push rax|
+|pop|pop [rax+6]|mov r12, r15 <br/> add r15, rax <br/> pop [r15+6] <br/> mov r15, 12 |
+|in|in     |sub rsp, 8 <br/> mov rdi, rsp <br/> pusha <br/> mov r12, rsp <br/> and rsp,byte -0x10 <br/> call myScanf <br/> mov rsp, r12 <br/> popa|
+|add|add rax, rbx|pop rax <br/> pop rdx <br/> add rdx, rax <br/> push rdx|
+|mul|mul rax | pop rax <br/> cvtsi2sd xmm1, rax <br/> pop rax <br/> cvtsi2sd xmm0, rax <br/> mov rax, 1000 <br/> cvtsi2sd xmm2, rax <br/> divpd xmm0, xmm2 <br/> divpd xmm1, xmm2 <br/> mulpd xmm0, xmm1 <br/> mulpd xmm0, xmm2 <br/> cvtsd2si rax, xmm0 <br/> push rax |
+|jmp|jmp .label | jmp relAddr |
+|je|je .label  | pop rax <br/> pop rdx <br/> cmp rdx, rax <br/> je .label |
+|call|call .label | mov rax, absPtr <br/> mov qword [r14], rax <br/> add r14, 8 <br/> jmp relPtr |
+|ret|ret        |sub r14, 8 <br/> push [r14] <br/> ret |
+|hlt|hlt        | ret |
+
 
 #### Push/Pop
 В случае, если вы хотите расширять мой проект, то вам придётся использовать в файле `translateCommand.cpp` следующие define'ы:
