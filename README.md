@@ -46,16 +46,16 @@ make run ./tests/[executable_file_name]
 
 ||Native | x86-64 |
 |:---:|:-----:|:------:|
-|push|push 5 |mov rax, 5 <br/> push rax|
-|pop|pop [rax+6]|mov r12, r15 <br/> add r15, rax <br/> pop [r15+6] <br/> mov r15, 12 |
-|in|in     |sub rsp, 8 <br/> mov rdi, rsp <br/> pusha <br/> mov r12, rsp <br/> and rsp,byte -0x10 <br/> call myScanf <br/> mov rsp, r12 <br/> popa|
-|add|add rax, rbx|pop rax <br/> pop rdx <br/> add rdx, rax <br/> push rdx|
-|mul|mul rax | pop rax <br/> cvtsi2sd xmm1, rax <br/> pop rax <br/> cvtsi2sd xmm0, rax <br/> mov rax, 1000 <br/> cvtsi2sd xmm2, rax <br/> divpd xmm0, xmm2 <br/> divpd xmm1, xmm2 <br/> mulpd xmm0, xmm1 <br/> mulpd xmm0, xmm2 <br/> cvtsd2si rax, xmm0 <br/> push rax |
-|jmp|jmp .label | jmp relAddr |
-|je|je .label  | pop rax <br/> pop rdx <br/> cmp rdx, rax <br/> je .label |
-|call|call .label | mov rax, absPtr <br/> mov qword [r14], rax <br/> add r14, 8 <br/> jmp relPtr |
-|ret|ret        |sub r14, 8 <br/> push [r14] <br/> ret |
-|hlt|hlt        | ret |
+|**push**|push 5 |mov rax, 5 <br/> push rax|
+|**pop**|pop [rax+6]|mov r12, r15 <br/> add r15, rax <br/> pop [r15+6] <br/> mov r15, 12 |
+|**in**|in     |sub rsp, 8 <br/> mov rdi, rsp <br/> pusha <br/> mov r12, rsp <br/> and rsp,byte -0x10 <br/> call myScanf <br/> mov rsp, r12 <br/> popa|
+|**add**|add rax, rbx|pop rax <br/> pop rdx <br/> add rdx, rax <br/> push rdx|
+|**mul**|mul rax | pop rax <br/> cvtsi2sd xmm1, rax <br/> pop rax <br/> cvtsi2sd xmm0, rax <br/> mov rax, 1000 <br/> cvtsi2sd xmm2, rax <br/> divpd xmm0, xmm2 <br/> divpd xmm1, xmm2 <br/> mulpd xmm0, xmm1 <br/> mulpd xmm0, xmm2 <br/> cvtsd2si rax, xmm0 <br/> push rax |
+|**jmp**|jmp .label | jmp relAddr |
+|**je**|je .label  | pop rax <br/> pop rdx <br/> cmp rdx, rax <br/> je .label |
+|**call**|call .label | mov rax, absPtr <br/> mov qword [r14], rax <br/> add r14, 8 <br/> jmp relPtr |
+|**ret**|ret        |sub r14, 8 <br/> push [r14] <br/> ret |
+|**hlt**|hlt        | ret |
 
 
 #### Push/Pop
